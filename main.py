@@ -751,6 +751,53 @@ html body div[data-testid="stChatInputContainer"] > div > div > div {
     background-color: transparent !important;
 }
 
+/* Code block styling - white text in agent responses */
+div[data-testid="stChatMessage"][data-message="assistant"] pre,
+div[data-testid="stChatMessage"][data-message="assistant"] code,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code,
+.stChatMessage pre,
+.stChatMessage code,
+[class*="chatMessage"] pre,
+[class*="chatMessage"] code,
+[class*="ChatMessage"] pre,
+[class*="ChatMessage"] code,
+/* Streamlit code block elements */
+.stCodeBlock,
+.stCodeBlock pre,
+.stCodeBlock code,
+[data-testid="stCodeBlock"],
+[data-testid="stCodeBlock"] pre,
+[data-testid="stCodeBlock"] code,
+/* Generic code elements in chat */
+div[data-testid="stChatMessage"] pre,
+div[data-testid="stChatMessage"] code,
+div[data-testid="stChatMessage"] pre code,
+div[data-testid="stChatMessage"] code span,
+/* All code and pre elements */
+pre,
+code,
+pre code,
+code span {
+    color: white !important;
+    background-color: #2d3436 !important;
+}
+
+/* Code block background - dark background */
+div[data-testid="stChatMessage"][data-message="assistant"] pre,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
+.stChatMessage pre,
+[class*="chatMessage"] pre,
+.stCodeBlock,
+[data-testid="stCodeBlock"],
+pre {
+    background-color: #2d3436 !important;
+    background: #2d3436 !important;
+    border: 1px solid #636e72 !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+}
+
 /* Ultra comprehensive sidebar text styling */
 [data-testid="stSidebar"] *,
 [data-testid="stSidebar"] * *,
@@ -763,6 +810,32 @@ html body div[data-testid="stChatInputContainer"] > div > div > div {
 [data-testid="stSidebar"] .css-1lcbmhc,
 [data-testid="stSidebar"] .css-1v0mbdj,
 [data-testid="stSidebar"] [data-testid="stSidebar"] {
+    color: white !important;
+}
+
+/* Code block text - white color in all agent responses */
+div[data-testid="stChatMessage"][data-message="assistant"] pre,
+div[data-testid="stChatMessage"][data-message="assistant"] code,
+div[data-testid="stChatMessage"][data-message="assistant"] pre code,
+div[data-testid="stChatMessage"][data-message="assistant"] code span,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre code,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code span,
+div[data-testid="stChatMessage"][data-message="assistant"] * pre,
+div[data-testid="stChatMessage"][data-message="assistant"] * code,
+div[data-testid="stChatMessage"][data-message="assistant"] * pre *,
+div[data-testid="stChatMessage"][data-message="assistant"] * code * {
+    color: white !important;
+}
+
+/* Code block background in agent messages */
+div[data-testid="stChatMessage"][data-message="assistant"] pre,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
+div[data-testid="stChatMessage"][data-message="assistant"] code,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code {
+    background-color: #2d3436 !important;
+    background: #2d3436 !important;
     color: white !important;
 }
 
@@ -880,6 +953,7 @@ if (document.readyState === 'loading') {
 // Use MutationObserver
 const observer = new MutationObserver(() => {
     removeChatInputBackground();
+    makeCodeBlocksWhite();
 });
 
 observer.observe(document.body, { 
@@ -891,6 +965,49 @@ observer.observe(document.body, {
 
 // Run periodically - very frequently
 setInterval(removeChatInputBackground, 100);
+
+// Make code blocks white text
+function makeCodeBlocksWhite() {
+    // Find all code blocks in chat messages
+    const chatMessages = document.querySelectorAll('[data-testid="stChatMessage"][data-message="assistant"], [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"])');
+    
+    chatMessages.forEach(msg => {
+        // Find all pre and code elements
+        const preElements = msg.querySelectorAll('pre');
+        const codeElements = msg.querySelectorAll('code');
+        
+        preElements.forEach(pre => {
+            pre.style.color = 'white';
+            pre.style.backgroundColor = '#2d3436';
+            pre.style.setProperty('color', 'white', 'important');
+            pre.style.setProperty('background-color', '#2d3436', 'important');
+            
+            // Also style code inside pre
+            const codeInPre = pre.querySelectorAll('code');
+            codeInPre.forEach(code => {
+                code.style.color = 'white';
+                code.style.setProperty('color', 'white', 'important');
+            });
+        });
+        
+        codeElements.forEach(code => {
+            code.style.color = 'white';
+            code.style.backgroundColor = '#2d3436';
+            code.style.setProperty('color', 'white', 'important');
+            code.style.setProperty('background-color', '#2d3436', 'important');
+        });
+    });
+}
+
+// Run code block styling
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', makeCodeBlocksWhite);
+} else {
+    makeCodeBlocksWhite();
+}
+
+// Run periodically
+setInterval(makeCodeBlocksWhite, 500);
 
 // Inject a style element to override everything with app theme
 const style = document.createElement('style');
