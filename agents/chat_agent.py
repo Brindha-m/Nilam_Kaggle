@@ -2,29 +2,17 @@
 Chat Agent - LLM-powered conversational agent for agricultural queries
 """
 import uuid
-
 from google.genai import types
-
 from google.adk.agents import LlmAgent
-
 from google.adk.models.google_llm import Gemini
-
 from google.adk.runners import Runner
-
 from google.adk.sessions import InMemorySessionService
-
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
-
 from google.adk.tools.tool_context import ToolContext
-
 from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
-
 from mcp import StdioServerParameters
-
 from google.adk.apps.app import App, ResumabilityConfig
-
 from google.adk.tools.function_tool import FunctionTool
-
 from typing import Dict, Any
 from agents.base_agent import BaseAgent, AgentMessage, AgentContext, AgentState
 from agents.tools.builtin_tools import GoogleSearchTool, CalculatorTool
