@@ -71,8 +71,8 @@ def get_gemini_api_key():
         print(f"Could not read external secrets file: {e}")
     
     # Try environment variable
-    # api_key = os.getenv("GEMINI_API_KEY")
-    api_key = "AIzaSyCOqGuHJgfv_Gd2uHti0KKSsDFjkvV3Z84"
+    api_key = os.getenv("GEMINI_API_KEY")
+    # api_key = "AIzaSyCOqGuHJgfv_Gd2uHti0KKSsDFjkvV3Z84"
     if api_key:
         return api_key
     
