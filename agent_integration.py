@@ -5,7 +5,7 @@ Integrates multi-agent system with Streamlit UI
 import streamlit as st
 import os
 import sys
-
+from typing import Optional
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
