@@ -1272,7 +1272,7 @@ def run_agent_system():
                     if any(keyword in user_input.lower() for keyword in ['crop', 'recommend', 'plant', 'grow']):
                         tool_used = True
                         st.info("🔌 **MCP Crop Recommendation Tool** was used for crop analysis")
-                    if any(keyword in user_input.lower() for keyword in ['search', 'find', 'lookup']):
+                    if any(keyword in user_input.lower() for keyword in ['search', 'find', 'lookup']) and 'code' not in user_input.lower():
                         tool_used = True
                         st.info("⚙️ **Google Search Tool** was used to find information")
                     

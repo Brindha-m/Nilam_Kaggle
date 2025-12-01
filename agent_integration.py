@@ -102,25 +102,42 @@ def initialize_agent_system():
 
 
 def _format_agent_response(response: str) -> str:
-    """Format agent response for better display"""
+    """Format agent response for better display - preserve code blocks"""
     import re
     
-    # Remove raw search result dictionaries
-    response = re.sub(r'\[Search Results:.*?\]', '', response, flags=re.DOTALL)
+    # Protect code blocks from being modified
+    code_blocks = []
+    code_pattern = r'```[\s\S]*?```'
     
-    # Clean up multiple newlines
-    response = re.sub(r'\n{3,}', '\n\n', response)
+    # Extract and temporarily replace code blocks
+    def replace_code(match):
+        code_blocks.append(match.group(0))
+        return f"__CODE_BLOCK_{len(code_blocks)-1}__"
+    
+    # Protect code blocks first
+    protected_response = re.sub(code_pattern, replace_code, response)
+    
+    # Remove raw search result dictionaries (but not code blocks)
+    protected_response = re.sub(r'\[Search Results:.*?\]', '', protected_response, flags=re.DOTALL)
+    
+    # Clean up multiple newlines (but preserve code block spacing)
+    protected_response = re.sub(r'\n{3,}', '\n\n', protected_response)
     
     # Format crop recommendations better
-    if '🌾' in response or 'Crop Recommendation' in response:
+    if '🌾' in protected_response or 'Crop Recommendation' in protected_response:
         # Ensure proper markdown formatting
-        response = re.sub(r'\*\*Recommended Crop:\*\*', '**Recommended Crop:**', response)
-        response = re.sub(r'\*\*Confidence:\*\*', '**Confidence:**', response)
+        protected_response = re.sub(r'\*\*Recommended Crop:\*\*', '**Recommended Crop:**', protected_response)
+        protected_response = re.sub(r'\*\*Confidence:\*\*', '**Confidence:**', protected_response)
     
-    # Clean up any remaining JSON-like structures
-    response = re.sub(r'\{[^}]*query[^}]*\}', '', response)
+    # Clean up any remaining JSON-like structures (but not code)
+    protected_response = re.sub(r'\{[^}]*query[^}]*\}', '', protected_response)
     
-    return response.strip()
+    # Restore code blocks
+    final_response = protected_response
+    for i, code_block in enumerate(code_blocks):
+        final_response = final_response.replace(f"__CODE_BLOCK_{i}__", code_block)
+    
+    return final_response.strip()
 
 
 def get_or_create_session(session_service: InMemorySessionService, user_id: Optional[str] = None) -> str:
