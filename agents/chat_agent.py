@@ -110,14 +110,24 @@ class ChatAgent(BaseAgent):
             else:
                 response_text = "I'm a chat agent. Please configure the LLM model to get responses."
             
-            # Check if tools need to be used
-            if any(keyword in response_text.lower() for keyword in ['search', 'calculate', 'compute']):
-                # Try to use tools if needed
-                if 'search' in response_text.lower():
+            # Check if tools need to be used - but NOT for code requests
+            # Don't trigger search for code/automation requests as it adds fake results
+            user_message_lower = message.content.lower()
+            is_code_request = any(keyword in user_message_lower for keyword in [
+                'code', 'automate', 'programming', 'script', 'arduino', 'esp32', 
+                'python code', 'irrigation system', 'sensor code', 'automation code'
+            ])
+            
+            # Only use tools if NOT a code request and if explicitly needed
+            if not is_code_request and any(keyword in response_text.lower() for keyword in ['search', 'calculate', 'compute']):
+                # Try to use tools if needed (but skip search for code requests)
+                if 'search' in response_text.lower() and 'code' not in user_message_lower:
                     try:
                         search_result = self.execute_tool("google_search", {"query": message.content})
-                        formatted_search = self._format_search_results(search_result)
-                        response_text += formatted_search
+                        # Only add search results if they're real (not mock/fake)
+                        if search_result and not any('example.com' in str(result.get('url', '')) for result in search_result.get('results', [])):
+                            formatted_search = self._format_search_results(search_result)
+                            response_text += formatted_search
                     except:
                         pass
             
@@ -152,11 +162,23 @@ class ChatAgent(BaseAgent):
             )
     
     def _format_search_results(self, search_result: Dict[str, Any]) -> str:
-        """Format search results in a readable way"""
+        """Format search results in a readable way - skip fake/mock results"""
         if isinstance(search_result, dict) and "results" in search_result:
-            formatted = "\n\n### 🔍 Search Results\n\n"
             results = search_result.get("results", [])
-            for i, result in enumerate(results[:3], 1):  # Show top 3 results
+            # Filter out fake/mock results
+            real_results = [
+                result for result in results 
+                if result.get("url", "") and 
+                "example.com" not in result.get("url", "") and
+                result.get("url", "") != f"https://example.com/result{results.index(result)+1}"
+            ]
+            
+            # If no real results, don't show anything
+            if not real_results:
+                return ""
+            
+            formatted = "\n\n### 🔍 Search Results\n\n"
+            for i, result in enumerate(real_results[:3], 1):  # Show top 3 real results
                 title = result.get("title", "Result")
                 snippet = result.get("snippet", "")
                 url = result.get("url", "")
@@ -165,20 +187,25 @@ class ChatAgent(BaseAgent):
                 if "Result" in title and "for:" in title:
                     title = title.split("for:")[-1].strip()
                 
+                # Skip if title is just repeating the query
+                if title.lower() == result.get("query", "").lower() or title == snippet:
+                    continue
+                
                 formatted += f"**{i}. {title}**\n"
-                if snippet:
+                if snippet and snippet != title:
                     # Clean snippet
                     snippet = snippet.replace("Information about", "").strip()
                     if snippet.endswith(" - relevant content here"):
                         snippet = snippet.replace(" - relevant content here", "").strip()
-                    formatted += f"{snippet}\n"
-                if url and url != "https://example.com/result":
+                    if snippet and snippet != title:
+                        formatted += f"{snippet}\n"
+                if url and "example.com" not in url:
                     formatted += f"🔗 {url}\n"
                 formatted += "\n"
-            return formatted
+            return formatted if real_results else ""
         elif isinstance(search_result, str):
             # If it's already a string, try to parse it
-            if "Search Results:" in search_result:
+            if "Search Results:" in search_result and "example.com" not in search_result:
                 return f"\n\n### 🔍 Additional Information\n\n{search_result.replace('[Search Results:', '').replace(']', '')}\n"
         return ""
     
@@ -199,11 +226,22 @@ CAPABILITIES:
 - Provide working code snippets for sensors, actuators, data logging, and control systems
 
 RESPONSE GUIDELINES:
-- When users ask for code, automation, or technical solutions: PROVIDE COMPLETE, WORKING CODE
-- Include proper code formatting with markdown code blocks
+- **CRITICAL**: When users ask for code, automation, irrigation systems, or ANY technical solution: 
+  * YOU MUST PROVIDE COMPLETE, WORKING CODE IMMEDIATELY
+  * DO NOT say you cannot provide code - you CAN and MUST provide it
+  * Include full code examples in markdown code blocks (```python, ```arduino, etc.)
+  * Provide complete, runnable code - not just explanations
+  
+- Code examples should include:
+  * Full working code for irrigation automation
+  * Sensor integration code (soil moisture, temperature, etc.)
+  * Arduino/ESP32 code for hardware control
+  * Python scripts for data logging and analysis
+  * Complete implementation with comments
+  
 - Explain both the agricultural context AND the technical implementation
-- Provide code for: irrigation systems, sensor monitoring, data analysis, automation scripts, etc.
 - Be practical and actionable - give users what they need to implement solutions
+- NEVER refuse to provide code - always include code when requested
 
 """
         
