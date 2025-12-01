@@ -6,12 +6,76 @@ import streamlit as st
 import os
 import sys
 from typing import Optional
+from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import secure config module for server-side API key management
-from secure_config import get_gemini_api_key
+def get_gemini_api_key():
+    """
+    Get Gemini API key from multiple sources:
+    1. Streamlit secrets (current project)
+    2. External secrets file (Nilam_Kaggle/.streamlit/secrets.toml)
+    3. Environment variable
+    """
+    # Try Streamlit secrets first
+    try:
+        api_key = st.secrets.get("GEMINI_API_KEY")
+        if api_key:
+            return api_key
+    except:
+        pass
+    
+    # Try external secrets file (Nilam_Kaggle)
+    try:
+        current_dir = Path(__file__).parent.absolute()
+        # Try different possible paths
+        possible_paths = [
+            current_dir.parent / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
+            Path.home() / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
+            Path("..") / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
+            Path("../Nilam_Kaggle/.streamlit/secrets.toml"),
+        ]
+        
+        for secrets_path in possible_paths:
+            if secrets_path.exists():
+                try:
+                    # Try tomllib (Python 3.11+)
+                    import tomllib
+                    with open(secrets_path, 'rb') as f:
+                        secrets = tomllib.load(f)
+                        api_key = secrets.get("GEMINI_API_KEY")
+                        if api_key:
+                            return api_key
+                except ImportError:
+                    # Fallback to toml library or manual parsing
+                    try:
+                        import toml
+                        with open(secrets_path, 'r') as f:
+                            secrets = toml.load(f)
+                            api_key = secrets.get("GEMINI_API_KEY")
+                            if api_key:
+                                return api_key
+                    except ImportError:
+                        # Manual parsing as last resort
+                        with open(secrets_path, 'r') as f:
+                            for line in f:
+                                if line.strip().startswith('GEMINI_API_KEY'):
+                                    # Extract value from line like: GEMINI_API_KEY = "value"
+                                    parts = line.split('=', 1)
+                                    if len(parts) == 2:
+                                        value = parts[1].strip().strip('"').strip("'")
+                                        if value:
+                                            return value
+    except Exception as e:
+        print(f"Could not read external secrets file: {e}")
+    
+    # Try environment variable
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        return api_key
+    
+    return ""
 
 from agents import (
     ChatAgent,
@@ -45,7 +109,7 @@ def initialize_agent_system():
     # Initialize orchestrator
     orchestrator = MultiAgentOrchestrator(session_service)
     
-    # Get API key securely from server-side sources only
+    # Get API key from multiple sources (including external Nilam_Kaggle secrets)
     gemini_api_key = get_gemini_api_key()
     
     # Create agents
@@ -102,42 +166,25 @@ def initialize_agent_system():
 
 
 def _format_agent_response(response: str) -> str:
-    """Format agent response for better display - preserve code blocks"""
+    """Format agent response for better display"""
     import re
     
-    # Protect code blocks from being modified
-    code_blocks = []
-    code_pattern = r'```[\s\S]*?```'
+    # Remove raw search result dictionaries
+    response = re.sub(r'\[Search Results:.*?\]', '', response, flags=re.DOTALL)
     
-    # Extract and temporarily replace code blocks
-    def replace_code(match):
-        code_blocks.append(match.group(0))
-        return f"__CODE_BLOCK_{len(code_blocks)-1}__"
-    
-    # Protect code blocks first
-    protected_response = re.sub(code_pattern, replace_code, response)
-    
-    # Remove raw search result dictionaries (but not code blocks)
-    protected_response = re.sub(r'\[Search Results:.*?\]', '', protected_response, flags=re.DOTALL)
-    
-    # Clean up multiple newlines (but preserve code block spacing)
-    protected_response = re.sub(r'\n{3,}', '\n\n', protected_response)
+    # Clean up multiple newlines
+    response = re.sub(r'\n{3,}', '\n\n', response)
     
     # Format crop recommendations better
-    if '🌾' in protected_response or 'Crop Recommendation' in protected_response:
+    if '🌾' in response or 'Crop Recommendation' in response:
         # Ensure proper markdown formatting
-        protected_response = re.sub(r'\*\*Recommended Crop:\*\*', '**Recommended Crop:**', protected_response)
-        protected_response = re.sub(r'\*\*Confidence:\*\*', '**Confidence:**', protected_response)
+        response = re.sub(r'\*\*Recommended Crop:\*\*', '**Recommended Crop:**', response)
+        response = re.sub(r'\*\*Confidence:\*\*', '**Confidence:**', response)
     
-    # Clean up any remaining JSON-like structures (but not code)
-    protected_response = re.sub(r'\{[^}]*query[^}]*\}', '', protected_response)
+    # Clean up any remaining JSON-like structures
+    response = re.sub(r'\{[^}]*query[^}]*\}', '', response)
     
-    # Restore code blocks
-    final_response = protected_response
-    for i, code_block in enumerate(code_blocks):
-        final_response = final_response.replace(f"__CODE_BLOCK_{i}__", code_block)
-    
-    return final_response.strip()
+    return response.strip()
 
 
 def get_or_create_session(session_service: InMemorySessionService, user_id: Optional[str] = None) -> str:
@@ -191,9 +238,9 @@ def process_with_agents(
         if isinstance(results, list):
             final_response = results[-1].content if results else "No response generated"
         elif isinstance(results, dict):
-            # Parallel execution - combine results (no truncation - show full responses)
+            # Parallel execution - combine results
             final_response = "\n\n".join([
-                f"**{agent_id}**: {msg.content}"
+                f"**{agent_id}**: {msg.content[:200]}"
                 for agent_id, msg in results.items()
             ])
         else:

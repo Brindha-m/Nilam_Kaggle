@@ -648,76 +648,9 @@ div[data-testid="stChatMessageContainer"] > div {
     background-color: transparent !important;
 }
 
-/* Match app theme background behind st.chat_input - ULTRA AGGRESSIVE */
+/* Chat input styling - light background */
 div[data-testid="stChatInputContainer"],
 div[data-testid="stChatInputContainer"] > div,
-div[data-testid="stChatInputContainer"] > div > div,
-div[data-testid="stChatInputContainer"] > div > div > div,
-div[data-testid="stChatInputContainer"] > div > div > div > div,
-div:has(div[data-testid="stChatInputContainer"]),
-div:has(div[data-testid="stChatInputContainer"]) > div,
-div:has(div[data-testid="stChatInputContainer"]) > div > div,
-div:has(div[data-testid="stChatInputContainer"]) > div > div > div,
-div:has(div[data-testid="stChatInputContainer"]) > div > div > div > div,
-/* Target all parent elements up the DOM tree */
-div:has(div[data-testid="stChatInputContainer"]) > *,
-div:has(div[data-testid="stChatInputContainer"]) > * > *,
-/* Target any element with dark background containing chat input */
-div[style*="background"][style*="#000"]:has(div[data-testid="stChatInputContainer"]),
-div[style*="background"][style*="#2d3436"]:has(div[data-testid="stChatInputContainer"]),
-div[style*="background"][style*="black"]:has(div[data-testid="stChatInputContainer"]),
-div[style*="background-color"][style*="#000"]:has(div[data-testid="stChatInputContainer"]),
-div[style*="background-color"][style*="#2d3436"]:has(div[data-testid="stChatInputContainer"]),
-div[style*="background-color"][style*="black"]:has(div[data-testid="stChatInputContainer"]),
-div[style*="background"][style*="rgb(45, 52, 54)"]:has(div[data-testid="stChatInputContainer"]),
-div[style*="background"][style*="rgb(0, 0, 0)"]:has(div[data-testid="stChatInputContainer"]),
-/* Target section and main containers */
-section:has(div[data-testid="stChatInputContainer"]),
-main:has(div[data-testid="stChatInputContainer"]),
-[class*="block-container"]:has(div[data-testid="stChatInputContainer"]),
-[class*="element-container"]:has(div[data-testid="stChatInputContainer"]),
-[class*="stMain"]:has(div[data-testid="stChatInputContainer"]),
-[data-testid="stAppViewContainer"]:has(div[data-testid="stChatInputContainer"]),
-[data-testid="stAppViewContainer"] > div:has(div[data-testid="stChatInputContainer"]),
-[data-testid="stAppViewContainer"] > div:has(div[data-testid="stChatInputContainer"]) > div,
-[data-testid="stAppViewContainer"] > div:has(div[data-testid="stChatInputContainer"]) > div > div,
-[data-testid="stAppViewContainer"] > div:has(div[data-testid="stChatInputContainer"]) > div > div > div {
-    background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%) !important;
-    background-color: var(--cream-light) !important;
-    background-image: none !important;
-}
-
-/* Override inline styles - force app theme background */
-div[data-testid="stChatInputContainer"][style],
-div[data-testid="stChatInputContainer"][style] > div,
-div:has(div[data-testid="stChatInputContainer"])[style] {
-    background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%) !important;
-    background-color: var(--cream-light) !important;
-}
-
-/* Target the bottom section where Streamlit places chat input - match app theme */
-[data-testid="stAppViewContainer"] > div:last-child:has(div[data-testid="stChatInputContainer"]),
-[data-testid="stAppViewContainer"] > div:last-child:has(div[data-testid="stChatInputContainer"]) > div,
-[data-testid="stAppViewContainer"] > div:last-child:has(div[data-testid="stChatInputContainer"]) > div > div,
-[data-testid="stAppViewContainer"] > div:last-child:has(div[data-testid="stChatInputContainer"]) > div > div > div,
-[data-testid="stAppViewContainer"] > div:last-child:has(div[data-testid="stChatInputContainer"]) > div > div > div > div,
-.stApp > div:last-child:has(div[data-testid="stChatInputContainer"]),
-.stApp > div:last-child:has(div[data-testid="stChatInputContainer"]) > div,
-.stApp > div:last-child:has(div[data-testid="stChatInputContainer"]) > div > div,
-.stApp > div:last-child:has(div[data-testid="stChatInputContainer"]) > div > div > div,
-/* Target block containers at bottom that contain chat input */
-[class*="block-container"]:last-child:has(div[data-testid="stChatInputContainer"]),
-[class*="block-container"]:last-child:has(div[data-testid="stChatInputContainer"]) > div,
-[class*="block-container"]:last-child:has(div[data-testid="stChatInputContainer"]) > div > div,
-[class*="element-container"]:last-child:has(div[data-testid="stChatInputContainer"]),
-[class*="element-container"]:last-child:has(div[data-testid="stChatInputContainer"]) > div,
-[class*="element-container"]:last-child:has(div[data-testid="stChatInputContainer"]) > div > div {
-    background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%) !important;
-    background-color: var(--cream-light) !important;
-    background-image: none !important;
-}
-
-/* Chat input field itself - white background */
 div[data-testid="stChatInputContainer"] input,
 div[data-testid="stChatInputContainer"] textarea {
     background: white !important;
@@ -727,75 +660,12 @@ div[data-testid="stChatInputContainer"] textarea {
     border-radius: 15px !important;
 }
 
-/* MAXIMUM SPECIFICITY - Force app theme background on chat input container and ALL parents */
-html body div[data-testid="stAppViewContainer"] div:has(div[data-testid="stChatInputContainer"]),
-html body div[data-testid="stAppViewContainer"] div:has(div[data-testid="stChatInputContainer"]) > div,
-html body div[data-testid="stAppViewContainer"] div:has(div[data-testid="stChatInputContainer"]) > div > div,
-html body div[data-testid="stAppViewContainer"] div:has(div[data-testid="stChatInputContainer"]) > div > div > div,
-html body div[data-testid="stAppViewContainer"] div:has(div[data-testid="stChatInputContainer"]) > div > div > div > div,
-html body div[data-testid="stChatInputContainer"],
-html body div[data-testid="stChatInputContainer"] > div,
-html body div[data-testid="stChatInputContainer"] > div > div,
-html body div[data-testid="stChatInputContainer"] > div > div > div {
-    background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%) !important;
-    background-color: var(--cream-light) !important;
-    background-image: none !important;
-}
-
-
 /* Override any Streamlit dark theme for chat */
 .stChatMessage,
 [class*="chatMessage"],
 [class*="ChatMessage"] {
     background: transparent !important;
     background-color: transparent !important;
-}
-
-/* Code block styling - white text in agent responses */
-div[data-testid="stChatMessage"][data-message="assistant"] pre,
-div[data-testid="stChatMessage"][data-message="assistant"] code,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code,
-.stChatMessage pre,
-.stChatMessage code,
-[class*="chatMessage"] pre,
-[class*="chatMessage"] code,
-[class*="ChatMessage"] pre,
-[class*="ChatMessage"] code,
-/* Streamlit code block elements */
-.stCodeBlock,
-.stCodeBlock pre,
-.stCodeBlock code,
-[data-testid="stCodeBlock"],
-[data-testid="stCodeBlock"] pre,
-[data-testid="stCodeBlock"] code,
-/* Generic code elements in chat */
-div[data-testid="stChatMessage"] pre,
-div[data-testid="stChatMessage"] code,
-div[data-testid="stChatMessage"] pre code,
-div[data-testid="stChatMessage"] code span,
-/* All code and pre elements */
-pre,
-code,
-pre code,
-code span {
-    color: white !important;
-    background-color: #2d3436 !important;
-}
-
-/* Code block background - dark background */
-div[data-testid="stChatMessage"][data-message="assistant"] pre,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
-.stChatMessage pre,
-[class*="chatMessage"] pre,
-.stCodeBlock,
-[data-testid="stCodeBlock"],
-pre {
-    background-color: #2d3436 !important;
-    background: #2d3436 !important;
-    border: 1px solid #636e72 !important;
-    border-radius: 8px !important;
-    padding: 1rem !important;
 }
 
 /* Ultra comprehensive sidebar text styling */
@@ -813,229 +683,8 @@ pre {
     color: white !important;
 }
 
-/* Code block text - white color in all agent responses */
-div[data-testid="stChatMessage"][data-message="assistant"] pre,
-div[data-testid="stChatMessage"][data-message="assistant"] code,
-div[data-testid="stChatMessage"][data-message="assistant"] pre code,
-div[data-testid="stChatMessage"][data-message="assistant"] code span,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre code,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code span,
-div[data-testid="stChatMessage"][data-message="assistant"] * pre,
-div[data-testid="stChatMessage"][data-message="assistant"] * code,
-div[data-testid="stChatMessage"][data-message="assistant"] * pre *,
-div[data-testid="stChatMessage"][data-message="assistant"] * code * {
-    color: white !important;
-}
-
-/* Code block background in agent messages */
-div[data-testid="stChatMessage"][data-message="assistant"] pre,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) pre,
-div[data-testid="stChatMessage"][data-message="assistant"] code,
-div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) code {
-    background-color: #2d3436 !important;
-    background: #2d3436 !important;
-    color: white !important;
-}
-
             
 </style>
-<script>
-// ULTRA AGGRESSIVE: Remove black background behind chat input
-function removeChatInputBackground() {
-    const chatInput = document.querySelector('[data-testid="stChatInputContainer"]');
-    if (!chatInput) return;
-    
-    // Set app theme background on chat input itself (but keep input field white)
-    chatInput.style.background = 'linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%)';
-    chatInput.style.backgroundColor = '#fefcf8';
-    
-    // Remove from all children (input field should stay white)
-    chatInput.querySelectorAll('*').forEach(el => {
-        // Don't change input/textarea backgrounds - keep them white
-        if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') {
-            el.style.background = 'linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%)';
-            el.style.backgroundColor = '#fefcf8';
-        }
-    });
-    
-    // Remove from ALL parent elements up to body
-    let parent = chatInput.parentElement;
-    while (parent && parent !== document.body && parent !== document.documentElement) {
-        // Force set app theme background
-        parent.style.setProperty('background', 'linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%)', 'important');
-        parent.style.setProperty('background-color', '#fefcf8', 'important');
-        parent.style.setProperty('background-image', 'none', 'important');
-        
-        // Check computed style and override if dark
-        const computed = window.getComputedStyle(parent);
-        const bgColor = computed.backgroundColor;
-        if (bgColor && (
-            bgColor.includes('rgb(45, 52, 54)') || 
-            bgColor.includes('rgb(0, 0, 0)') || 
-            bgColor === 'rgb(0, 0, 0)' || 
-            bgColor === 'rgb(45, 52, 54)' ||
-            bgColor.includes('#000') ||
-            bgColor.includes('#2d3436')
-        )) {
-            parent.style.setProperty('background', 'linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%)', 'important');
-            parent.style.setProperty('background-color', '#fefcf8', 'important');
-        }
-        
-        parent = parent.parentElement;
-    }
-    
-    // Also find and fix the last block container (where Streamlit places chat input)
-    const appContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-    if (appContainer) {
-        const mainContent = Array.from(appContainer.children).find(child => 
-            child.getAttribute('data-testid') !== 'stSidebar' && 
-            child.contains(chatInput)
-        );
-        
-        if (mainContent) {
-            // Get the last block container
-            const blockContainers = mainContent.querySelectorAll('[class*="block-container"]');
-            if (blockContainers.length > 0) {
-                const lastBlock = blockContainers[blockContainers.length - 1];
-                if (lastBlock.contains(chatInput)) {
-                    lastBlock.style.setProperty('background', 'linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%)', 'important');
-                    lastBlock.style.setProperty('background-color', '#fefcf8', 'important');
-                    
-                    // Fix all parents of last block
-                    let blockParent = lastBlock.parentElement;
-                    while (blockParent && blockParent !== document.body) {
-                        blockParent.style.setProperty('background', 'linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%)', 'important');
-                        blockParent.style.setProperty('background-color', '#fefcf8', 'important');
-                        blockParent = blockParent.parentElement;
-                    }
-                }
-            }
-        }
-    }
-    
-    // Find all divs containing chat input and remove dark backgrounds
-    document.querySelectorAll('div').forEach(div => {
-        if (div.contains(chatInput) && div !== chatInput) {
-            const bg = window.getComputedStyle(div).backgroundColor;
-            if (bg && (
-                bg.includes('rgb(45, 52, 54)') || 
-                bg.includes('rgb(0, 0, 0)') || 
-                bg === 'rgb(0, 0, 0)' || 
-                bg === 'rgb(45, 52, 54)' ||
-                bg.includes('#000') ||
-                bg.includes('#2d3436')
-            )) {
-                div.style.setProperty('background', 'linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%)', 'important');
-                div.style.setProperty('background-color', '#fefcf8', 'important');
-            }
-        }
-    });
-}
-
-// Run multiple times to ensure it works
-function forceRemove() {
-    removeChatInputBackground();
-    setTimeout(removeChatInputBackground, 100);
-    setTimeout(removeChatInputBackground, 500);
-    setTimeout(removeChatInputBackground, 1000);
-    setTimeout(removeChatInputBackground, 2000);
-}
-
-// Run immediately
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', forceRemove);
-} else {
-    forceRemove();
-}
-
-// Use MutationObserver
-const observer = new MutationObserver(() => {
-    removeChatInputBackground();
-    makeCodeBlocksWhite();
-});
-
-observer.observe(document.body, { 
-    childList: true, 
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['style', 'class']
-});
-
-// Run periodically - very frequently
-setInterval(removeChatInputBackground, 100);
-
-// Make code blocks white text
-function makeCodeBlocksWhite() {
-    // Find all code blocks in chat messages
-    const chatMessages = document.querySelectorAll('[data-testid="stChatMessage"][data-message="assistant"], [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"])');
-    
-    chatMessages.forEach(msg => {
-        // Find all pre and code elements
-        const preElements = msg.querySelectorAll('pre');
-        const codeElements = msg.querySelectorAll('code');
-        
-        preElements.forEach(pre => {
-            pre.style.color = 'white';
-            pre.style.backgroundColor = '#2d3436';
-            pre.style.setProperty('color', 'white', 'important');
-            pre.style.setProperty('background-color', '#2d3436', 'important');
-            
-            // Also style code inside pre
-            const codeInPre = pre.querySelectorAll('code');
-            codeInPre.forEach(code => {
-                code.style.color = 'white';
-                code.style.setProperty('color', 'white', 'important');
-            });
-        });
-        
-        codeElements.forEach(code => {
-            code.style.color = 'white';
-            code.style.backgroundColor = '#2d3436';
-            code.style.setProperty('color', 'white', 'important');
-            code.style.setProperty('background-color', '#2d3436', 'important');
-        });
-    });
-}
-
-// Run code block styling
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', makeCodeBlocksWhite);
-} else {
-    makeCodeBlocksWhite();
-}
-
-// Run periodically
-setInterval(makeCodeBlocksWhite, 500);
-
-// Inject a style element to override everything with app theme
-const style = document.createElement('style');
-style.textContent = `
-    div[data-testid="stChatInputContainer"],
-    div[data-testid="stChatInputContainer"] > *:not(input):not(textarea),
-    div:has(div[data-testid="stChatInputContainer"]),
-    div:has(div[data-testid="stChatInputContainer"]) > *,
-    div:has(div[data-testid="stChatInputContainer"]) > * > *,
-    div:has(div[data-testid="stChatInputContainer"]) > * > * > * {
-        background: linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%) !important;
-        background-color: #fefcf8 !important;
-        background-image: none !important;
-    }
-`;
-document.head.appendChild(style);
-
-// Also add inline style directly to chat input when found
-const addInlineStyle = () => {
-    const chatInput = document.querySelector('[data-testid="stChatInputContainer"]');
-    if (chatInput) {
-        chatInput.setAttribute('style', 'background: linear-gradient(135deg, #fefcf8 0%, #f5f1e8 100%) !important; background-color: #fefcf8 !important;');
-    }
-};
-
-// Run addInlineStyle frequently
-setInterval(addInlineStyle, 100);
-</script>
 """, unsafe_allow_html=True)
 
 def run_nilamchat():
@@ -1272,7 +921,7 @@ def run_agent_system():
                     if any(keyword in user_input.lower() for keyword in ['crop', 'recommend', 'plant', 'grow']):
                         tool_used = True
                         st.info("🔌 **MCP Crop Recommendation Tool** was used for crop analysis")
-                    if any(keyword in user_input.lower() for keyword in ['search', 'find', 'lookup']) and 'code' not in user_input.lower():
+                    if any(keyword in user_input.lower() for keyword in ['search', 'find', 'lookup']):
                         tool_used = True
                         st.info("⚙️ **Google Search Tool** was used to find information")
                     
