@@ -6,6 +6,7 @@ import streamlit as st
 import os
 import sys
 from typing import Optional
+
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -173,9 +174,9 @@ def process_with_agents(
         if isinstance(results, list):
             final_response = results[-1].content if results else "No response generated"
         elif isinstance(results, dict):
-            # Parallel execution - combine results
+            # Parallel execution - combine results (no truncation - show full responses)
             final_response = "\n\n".join([
-                f"**{agent_id}**: {msg.content[:200]}"
+                f"**{agent_id}**: {msg.content}"
                 for agent_id, msg in results.items()
             ])
         else:
