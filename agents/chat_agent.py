@@ -58,10 +58,55 @@ class ChatAgent(BaseAgent):
             # Build prompt with context
             prompt = self._build_prompt(message.content, conversation_history, context)
             
-            # Generate response using LLM
+            # Generate response using LLM with generation config for complete responses
             if self.llm_model:
-                response = self.llm_model.generate_content(prompt)
-                response_text = response.text
+                # Configure generation settings to ensure complete responses
+                # Use genai.types.GenerationConfig for proper configuration
+                try:
+                    from google.generativeai.types import GenerationConfig
+                    generation_config = GenerationConfig(
+                        temperature=0.7,
+                        top_p=0.95,
+                        top_k=40,
+                        max_output_tokens=8192,  # Allow longer responses
+                    )
+                except ImportError:
+                    # Fallback to dict format if GenerationConfig not available
+                    generation_config = {
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "top_k": 40,
+                        "max_output_tokens": 8192,
+                    }
+                
+                response = self.llm_model.generate_content(
+                    prompt,
+                    generation_config=generation_config
+                )
+                # Get full response text - ensure we capture the complete response
+                try:
+                    response_text = response.text
+                    # If response seems incomplete, check for finish_reason
+                    if hasattr(response, 'candidates') and response.candidates:
+                        candidate = response.candidates[0]
+                        if hasattr(candidate, 'finish_reason'):
+                            # If stopped due to length, try to get more
+                            if candidate.finish_reason == 'MAX_TOKENS':
+                                # Response was truncated - log warning but return what we have
+                                self.log_trace("response_truncated", {
+                                    "reason": "MAX_TOKENS",
+                                    "length": len(response_text)
+                                })
+                except Exception as e:
+                    # If response.text fails, try alternative methods
+                    if hasattr(response, 'candidates') and response.candidates:
+                        try:
+                            response_text = response.candidates[0].content.parts[0].text
+                        except:
+                            response_text = str(response.candidates[0])
+                    else:
+                        response_text = f"Error getting response: {str(e)}"
+                        raise e
             else:
                 response_text = "I'm a chat agent. Please configure the LLM model to get responses."
             
