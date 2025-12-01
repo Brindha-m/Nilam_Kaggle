@@ -5,78 +5,12 @@ Integrates multi-agent system with Streamlit UI
 import streamlit as st
 import os
 import sys
-from typing import Optional
-from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-def get_gemini_api_key():
-    """
-    Get Gemini API key from multiple sources:
-    1. Streamlit secrets (current project)
-    2. External secrets file (Nilam_Kaggle/.streamlit/secrets.toml)
-    3. Environment variable
-    """
-    # Try Streamlit secrets first
-    try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
-        if api_key:
-            return api_key
-    except:
-        pass
-    
-    # Try external secrets file (Nilam_Kaggle)
-    try:
-        current_dir = Path(__file__).parent.absolute()
-        # Try different possible paths
-        possible_paths = [
-            current_dir.parent / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
-            Path.home() / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
-            Path("..") / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
-            Path("../Nilam_Kaggle/.streamlit/secrets.toml"),
-        ]
-        
-        for secrets_path in possible_paths:
-            if secrets_path.exists():
-                try:
-                    # Try tomllib (Python 3.11+)
-                    import tomllib
-                    with open(secrets_path, 'rb') as f:
-                        secrets = tomllib.load(f)
-                        api_key = secrets.get("GEMINI_API_KEY")
-                        if api_key:
-                            return api_key
-                except ImportError:
-                    # Fallback to toml library or manual parsing
-                    try:
-                        import toml
-                        with open(secrets_path, 'r') as f:
-                            secrets = toml.load(f)
-                            api_key = secrets.get("GEMINI_API_KEY")
-                            if api_key:
-                                return api_key
-                    except ImportError:
-                        # Manual parsing as last resort
-                        with open(secrets_path, 'r') as f:
-                            for line in f:
-                                if line.strip().startswith('GEMINI_API_KEY'):
-                                    # Extract value from line like: GEMINI_API_KEY = "value"
-                                    parts = line.split('=', 1)
-                                    if len(parts) == 2:
-                                        value = parts[1].strip().strip('"').strip("'")
-                                        if value:
-                                            return value
-    except Exception as e:
-        print(f"Could not read external secrets file: {e}")
-    
-    # Try environment variable
-    api_key = os.getenv("GEMINI_API_KEY")
-    # api_key = "AIzaSyCOqGuHJgfv_Gd2uHti0KKSsDFjkvV3Z84"
-    if api_key:
-        return api_key
-    
-    return ""
+# Import secure config module for server-side API key management
+from secure_config import get_gemini_api_key
 
 from agents import (
     ChatAgent,
@@ -110,7 +44,7 @@ def initialize_agent_system():
     # Initialize orchestrator
     orchestrator = MultiAgentOrchestrator(session_service)
     
-    # Get API key from multiple sources (including external Nilam_Kaggle secrets)
+    # Get API key securely from server-side sources only
     gemini_api_key = get_gemini_api_key()
     
     # Create agents

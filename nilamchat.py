@@ -590,19 +590,39 @@ TRANSLATIONS = {
 }
 
 def initialize_gemini():
-    """Initialize Gemini API"""
-    import os
-    # Try to get API key from Streamlit secrets, then environment variable, then user input
-    api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") or st.sidebar.text_input("🔑 Enter Gemini API Key", type="password")
-    if api_key:
-        try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-2.5-flash")
-            return model
-        except Exception as e:
-            st.error(f"❌ Error initializing Gemini: {str(e)}")
-            return None
-    return None
+    """Initialize Gemini API - Secure server-side implementation"""
+    from secure_config import get_gemini_api_key, validate_api_key
+    
+    # Get API key securely from server-side sources only (never from user input)
+    api_key = get_gemini_api_key()
+    
+    if not validate_api_key(api_key):
+        st.error("""
+        ⚠️ **API Key Not Configured**
+        
+        Please configure your Gemini API key using one of these methods:
+        
+        **For Streamlit Cloud:**
+        1. Go to your app settings
+        2. Navigate to "Secrets" section
+        3. Add: `GEMINI_API_KEY = "your-api-key-here"`
+        
+        **For Local Development:**
+        1. Create `.streamlit/secrets.toml` file
+        2. Add: `GEMINI_API_KEY = "your-api-key-here"`
+        
+        **For Docker:**
+        Set environment variable: `GEMINI_API_KEY=your-api-key-here`
+        """)
+        return None
+    
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        return model
+    except Exception as e:
+        st.error(f"❌ Error initializing Gemini: {str(e)}")
+        return None
 
 def extract_and_format_tables(text):
     """Extract and convert markdown tables to styled HTML tables"""
