@@ -226,10 +226,9 @@ Nilam is built as a **multi-agent orchestration system** with the following arch
 
 <img width="1904" height="708" alt="Screenshot 2025-12-01 054431" src="https://github.com/user-attachments/assets/32a50175-a57f-40da-b9d5-c32f620d45c0" />
 <img width="1503" height="700" alt="Screenshot 2025-12-01 054451" src="https://github.com/user-attachments/assets/aa49c70e-4b50-475f-bce0-54e2ac20b9cd" />
-<img width="1351" height="808" alt="Screenshot 2025-08-19 040743" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/40e0a610-a778-4995-b66f-55fac4ec0c5c" />
-<img width="1351" height="808" alt="Screenshot 2025-08-19 162233" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/a66067be-80bc-4b88-a994-5d5267d86160" />
-<img width="1351" height="808" alt="Screenshot 2025-08-19 040912" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/3481ef28-3e1a-4b80-87c5-01d9f2b4c3e7" />
-https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479259621-3481ef28-3e1a-4b80-87c5-01d9f2b4c3e7.png?raw=true
+<img width="1351" height="808" alt="Screenshot" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479259597-40e0a610-a778-4995-b66f-55fac4ec0c5c.png?raw=true" />
+<img width="1351" height="808" alt="Screenshot" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479259621-3481ef28-3e1a-4b80-87c5-01d9f2b4c3e7.png?raw=true"/>
+<img width="1351" height="808" alt="Screenshot" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479495496-a66067be-80bc-4b88-a994-5d5267d86160.png?raw=true"/>
 
 ## 📋 Prerequisites
 
