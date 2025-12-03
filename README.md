@@ -1,12 +1,11 @@
-<img width="200" height="200" alt="3147fb2d-77b0-4750-8951-ec3a92b44786" src="https://github.com/user-attachments/assets/fcc4a050-49c8-4cba-8ea7-6e76e5cfbb4c" />
-
+<img width="200" height="200" alt="Nilam logo" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479230373-fcc4a050-49c8-4cba-8ea7-6e76e5cfbb4c.png" />
 <br>
 
 **Nilam (Native Intelligence for Land and Agriculture Management) is an integrated AI-powered agricultural  multilingual chat assistance, leaf disease detection, and personalized crop recommendation system.**
 
 ## Modules Architecture
 
-<img width="642" height="661" alt="NILAM ARCH" src="https://github.com/user-attachments/assets/52861f5c-95d3-41ff-b3b1-8e8b7279fbe4" />
+<img width="642" height="661" alt="NILAM ARCH" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479232011-52861f5c-95d3-41ff-b3b1-8e8b7279fbe4.png" />
 
 
 ### 🌱 **Nilam Chat**
@@ -227,9 +226,10 @@ Nilam is built as a **multi-agent orchestration system** with the following arch
 
 <img width="1904" height="708" alt="Screenshot 2025-12-01 054431" src="https://github.com/user-attachments/assets/32a50175-a57f-40da-b9d5-c32f620d45c0" />
 <img width="1503" height="700" alt="Screenshot 2025-12-01 054451" src="https://github.com/user-attachments/assets/aa49c70e-4b50-475f-bce0-54e2ac20b9cd" />
-<img width="1351" height="808" alt="Screenshot 2025-08-19 040743" src="https://github.com/user-attachments/assets/40e0a610-a778-4995-b66f-55fac4ec0c5c" />
-<img width="1351" height="808" alt="Screenshot 2025-08-19 162233" src="https://github.com/user-attachments/assets/a66067be-80bc-4b88-a994-5d5267d86160" />
-<img width="1351" height="808" alt="Screenshot 2025-08-19 040912" src="https://github.com/user-attachments/assets/3481ef28-3e1a-4b80-87c5-01d9f2b4c3e7" />
+<img width="1351" height="808" alt="Screenshot 2025-08-19 040743" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/40e0a610-a778-4995-b66f-55fac4ec0c5c" />
+<img width="1351" height="808" alt="Screenshot 2025-08-19 162233" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/a66067be-80bc-4b88-a994-5d5267d86160" />
+<img width="1351" height="808" alt="Screenshot 2025-08-19 040912" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/3481ef28-3e1a-4b80-87c5-01d9f2b4c3e7" />
+https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479259621-3481ef28-3e1a-4b80-87c5-01d9f2b4c3e7.png?raw=true
 
 ## 📋 Prerequisites
 
