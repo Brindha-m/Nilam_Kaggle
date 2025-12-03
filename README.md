@@ -230,12 +230,6 @@ Nilam is built as a **multi-agent orchestration system** with the following arch
 <img width="1351" height="808" alt="Screenshot" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479259621-3481ef28-3e1a-4b80-87c5-01d9f2b4c3e7.png?raw=true"/>
 <img width="1351" height="808" alt="Screenshot" src="https://github.com/Brindha-m/Nilam_Kaggle/blob/main/assets/479495496-a66067be-80bc-4b88-a994-5d5267d86160.png?raw=true"/>
 
-## 📋 Prerequisites
-
-- Python 3.9 or higher
-- Google Gemini API Key (for Nilam Chat)
-- my .pkl file is more than 800mb lfs didn't support, so recommended to run simple_model.py locally (for Nilam Sense)
-
 ## 🛠️ Installation
 
 1. **Clone the repository**
