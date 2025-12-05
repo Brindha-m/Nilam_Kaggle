@@ -119,8 +119,9 @@ class ChatAgent(BaseAgent):
                     except:
                         pass
             
-            # Format code blocks with white color (only code parts)
+            # Format code blocks with white color and remove demo links
             response_text = self._format_code_blocks(response_text)
+            response_text = self._remove_demo_links(response_text)
             
             response_time = __import__('time').time() - start_time
             self.update_metrics("average_response_time", response_time)
@@ -203,6 +204,27 @@ class ChatAgent(BaseAgent):
         )
         
         return text
+    
+    def _remove_demo_links(self, text: str) -> str:
+        """Remove demo links and example URLs from response"""
+        import re
+        
+        # Remove demo/example URLs
+        text = re.sub(r'https?://(?:www\.)?(?:demo|example|test|localhost)[^\s\)]+', '', text, flags=re.IGNORECASE)
+        
+        # Remove lines containing demo links
+        lines = text.split('\n')
+        filtered_lines = []
+        for line in lines:
+            # Skip lines that are just demo links or contain demo/example URLs
+            if re.search(r'(demo|example|test)\.(com|org|net|io)', line, re.IGNORECASE):
+                continue
+            # Skip lines that are just URLs pointing to demo/example sites
+            if re.match(r'^\s*https?://(?:www\.)?(?:demo|example|test)', line, re.IGNORECASE):
+                continue
+            filtered_lines.append(line)
+        
+        return '\n'.join(filtered_lines)
     
     def _build_prompt(self, user_message: str, history: list, context: AgentContext) -> str:
         """Build prompt with context and history"""
