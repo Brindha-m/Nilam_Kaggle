@@ -185,24 +185,35 @@ class ChatAgent(BaseAgent):
         return ""
     
     def _format_code_blocks(self, text: str) -> str:
-        """Format code blocks with white text color - only changes code parts"""
+        """Ensure code blocks are properly formatted as markdown"""
         import re
         
-        # Format inline code (single backticks) with white color
-        text = re.sub(
-            r'`([^`]+)`',
-            r'<code style="color: white; background-color: #2d2d2d; padding: 2px 6px; border-radius: 3px; font-family: monospace;">\1</code>',
-            text
-        )
+        # Ensure code blocks are properly formatted markdown
+        # Fix any incomplete or malformed code blocks
+        # Pattern: ```language\ncode\n```
+        def fix_code_block(match):
+            lang = match.group(1) or ''
+            code_content = match.group(2).strip()
+            # Ensure proper markdown format
+            return f'```{lang}\n{code_content}\n```'
         
-        # Format code blocks (triple backticks) with white color
+        # Match code blocks and ensure they're properly formatted
         text = re.sub(
-            r'```(\w+)?\n?(.*?)```',
-            r'<pre style="color: white; background-color: #1e1e1e; padding: 1rem; border-radius: 5px; overflow-x: auto; border: 1px solid #444;"><code style="color: white; font-family: monospace;">\2</code></pre>',
+            r'```(\w+)?\n(.*?)\n```',
+            fix_code_block,
             text,
             flags=re.DOTALL
         )
         
+        # Also handle code blocks without language specification
+        text = re.sub(
+            r'```\n(.*?)\n```',
+            lambda m: f'```\n{m.group(1)}\n```',
+            text,
+            flags=re.DOTALL
+        )
+        
+        # Keep markdown format - CSS in UI will handle white color styling
         return text
     
     def _remove_demo_links(self, text: str) -> str:
