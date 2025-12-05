@@ -185,35 +185,31 @@ class ChatAgent(BaseAgent):
         return ""
     
     def _format_code_blocks(self, text: str) -> str:
-        """Ensure code blocks are properly formatted as markdown"""
+        """Format code blocks with grey background and white text"""
         import re
         
-        # Ensure code blocks are properly formatted markdown
-        # Fix any incomplete or malformed code blocks
-        # Pattern: ```language\ncode\n```
-        def fix_code_block(match):
+        # Format code blocks (triple backticks) with grey background
+        def format_code_block(match):
             lang = match.group(1) or ''
             code_content = match.group(2).strip()
-            # Ensure proper markdown format
-            return f'```{lang}\n{code_content}\n```'
+            # Display code with grey background, not the markdown syntax
+            return f'<div style="background-color: #2d2d2d; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; border: 1px solid #444;"><pre style="margin: 0; color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; font-size: 14px;"><code style="color: white;">{code_content}</code></pre></div>'
         
-        # Match code blocks and ensure they're properly formatted
+        # Match code blocks and format them
         text = re.sub(
-            r'```(\w+)?\n(.*?)\n```',
-            fix_code_block,
+            r'```(\w+)?\n(.*?)```',
+            format_code_block,
             text,
             flags=re.DOTALL
         )
         
-        # Also handle code blocks without language specification
+        # Format inline code (single backticks) with grey background
         text = re.sub(
-            r'```\n(.*?)\n```',
-            lambda m: f'```\n{m.group(1)}\n```',
-            text,
-            flags=re.DOTALL
+            r'`([^`]+)`',
+            r'<code style="background-color: #2d2d2d; color: white; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">\1</code>',
+            text
         )
         
-        # Keep markdown format - CSS in UI will handle white color styling
         return text
     
     def _remove_demo_links(self, text: str) -> str:
