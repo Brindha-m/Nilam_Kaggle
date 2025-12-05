@@ -185,9 +185,15 @@ class ChatAgent(BaseAgent):
         return ""
     
     def _format_code_blocks(self, text: str) -> str:
-        """Render code snippets with a grey background and white text."""
+        """
+        Render code snippets with a grey background and white text.
+        Handles slightly malformed fences like ``cpp by normalizing to ```cpp.
+        """
         import re
         import html
+
+        # Normalize malformed fenced openings like ``cpp -> ```cpp
+        text = re.sub(r"(^|\n)``(\w+)", r"\1```\2", text)
 
         # Replace fenced code blocks (triple backticks) with styled HTML, dropping the ``` syntax
         def format_code_block(match):
@@ -202,7 +208,7 @@ class ChatAgent(BaseAgent):
             )
 
         text = re.sub(
-            r"```(?:\w+)?\n(.*?)```",
+            r"```(\w+)?\s*(.*?)```",
             format_code_block,
             text,
             flags=re.DOTALL,
