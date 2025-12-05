@@ -185,31 +185,40 @@ class ChatAgent(BaseAgent):
         return ""
     
     def _format_code_blocks(self, text: str) -> str:
-        """Format code blocks with grey background and white text"""
+        """Render code snippets with a grey background and white text."""
         import re
-        
-        # Format code blocks (triple backticks) with grey background
+        import html
+
+        # Replace fenced code blocks (triple backticks) with styled HTML, dropping the ``` syntax
         def format_code_block(match):
-            lang = match.group(1) or ''
-            code_content = match.group(2).strip()
-            # Display code with grey background, not the markdown syntax
-            return f'<div style="background-color: #2d2d2d; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; border: 1px solid #444;"><pre style="margin: 0; color: white; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; font-size: 14px;"><code style="color: white;">{code_content}</code></pre></div>'
-        
-        # Match code blocks and format them
+            code_content = html.escape(match.group(2).strip())
+            return (
+                "<div style=\"background-color: #2d2d2d; padding: 1rem; border-radius: 8px; "
+                "overflow-x: auto; margin: 1rem 0; border: 1px solid #444;\">"
+                "<pre style=\"margin: 0; color: white; font-family: monospace; "
+                "white-space: pre-wrap; word-wrap: break-word; font-size: 14px;\">"
+                f"<code>{code_content}</code>"
+                "</pre></div>"
+            )
+
         text = re.sub(
-            r'```(\w+)?\n(.*?)```',
+            r"```(?:\w+)?\n(.*?)```",
             format_code_block,
             text,
-            flags=re.DOTALL
+            flags=re.DOTALL,
         )
-        
-        # Format inline code (single backticks) with grey background
+
+        # Inline code with grey background
         text = re.sub(
-            r'`([^`]+)`',
-            r'<code style="background-color: #2d2d2d; color: white; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">\1</code>',
-            text
+            r"`([^`]+)`",
+            lambda m: (
+                "<code style=\"background-color: #2d2d2d; color: white; padding: 2px 6px; "
+                "border-radius: 4px; font-family: monospace; font-size: 14px;\">"
+                f"{html.escape(m.group(1))}</code>"
+            ),
+            text,
         )
-        
+
         return text
     
     def _remove_demo_links(self, text: str) -> str:
