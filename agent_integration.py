@@ -166,8 +166,14 @@ def initialize_agent_system():
 
 
 def _format_agent_response(response: str) -> str:
-    """Format agent response for better display"""
+    """Format agent response similar to NILAM CHAT with proper markdown-to-HTML conversion"""
     import re
+    import html
+    try:
+        import markdown2
+    except ImportError:
+        # Fallback if markdown2 is not available
+        markdown2 = None
     
     # Remove raw search result dictionaries
     response = re.sub(r'\[Search Results:.*?\]', '', response, flags=re.DOTALL)
@@ -183,6 +189,53 @@ def _format_agent_response(response: str) -> str:
     
     # Clean up any remaining JSON-like structures
     response = re.sub(r'\{[^}]*query[^}]*\}', '', response)
+    
+    # If markdown2 is available, convert markdown to HTML similar to NILAM CHAT
+    if markdown2:
+        # Unescape HTML entities
+        response = html.unescape(response)
+        
+        # Convert markdown to HTML with code blocks and tables
+        response = markdown2.markdown(response, extras=['fenced-code-blocks', 'tables'])
+        
+        # Format bullet points similar to NILAM CHAT
+        response = re.sub(
+            r'<li>(.*?)</li>',
+            r'<div class="bullet-point">• \1</div>',
+            response,
+            flags=re.DOTALL
+        )
+        
+        # Format important notes
+        response = re.sub(
+            r'<strong>Important:</strong>\s*(.+?)(?=<(?:h[1-6]|p|div|code|pre))',
+            r'<div class="important-note">⚠️ <strong>Important:</strong> \1</div>',
+            response,
+            flags=re.DOTALL
+        )
+        
+        # Style code blocks with white text (block code) - do this first
+        response = re.sub(
+            r'<pre><code(?: class="language-[\w-]+")?>(.*?)</code></pre>',
+            lambda m: f'<pre style="background-color: #2d3436; padding: 1rem; border-radius: 8px; border: 1px solid #636e72; overflow-x: auto; margin: 1rem 0;"><code style="color: white !important; background-color: transparent; font-family: \'Courier New\', Courier, monospace;">{m.group(1)}</code></pre>',
+            response,
+            flags=re.DOTALL
+        )
+        
+        # Also handle inline code (standalone code tags, not inside pre)
+        # Match code tags that are not immediately inside pre tags
+        def style_inline_code(match):
+            code_content = match.group(1)
+            # Skip if this is already inside a pre tag (handled above)
+            return f'<code style="color: white !important; background-color: #2d3436; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace;">{code_content}</code>'
+        
+        # Match code tags that don't have style attribute (to avoid double-styling)
+        response = re.sub(
+            r'<code(?![^>]*style)(?: class="language-[\w-]+")?>(.*?)</code>',
+            style_inline_code,
+            response,
+            flags=re.DOTALL
+        )
     
     return response.strip()
 

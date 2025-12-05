@@ -683,6 +683,50 @@ div[data-testid="stChatInputContainer"] textarea {
     color: white !important;
 }
 
+    /* Code block styling - white text for code snippets */
+    .response-content pre,
+    .response-content pre code,
+    pre code,
+    code {
+        color: white !important;
+        background-color: #2d3436 !important;
+        font-family: 'Courier New', Courier, monospace !important;
+    }
+    
+    .response-content pre {
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        overflow-x: auto !important;
+        border: 1px solid #636e72 !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .response-content pre code {
+        padding: 0 !important;
+        background-color: transparent !important;
+        color: white !important;
+    }
+    
+    .response-content code:not(pre code) {
+        padding: 0.2rem 0.4rem !important;
+        border-radius: 4px !important;
+        color: white !important;
+        background-color: #2d3436 !important;
+        font-size: 0.9em !important;
+    }
+    
+    /* Ensure code blocks in agent responses have white text */
+    div[data-testid="stMarkdownContainer"] pre code,
+    div[data-testid="stMarkdownContainer"] code {
+        color: white !important;
+        background-color: #2d3436 !important;
+    }
+    
+    div[data-testid="stMarkdownContainer"] pre {
+        background-color: #2d3436 !important;
+        border: 1px solid #636e72 !important;
+    }
+
             
 </style>
 """, unsafe_allow_html=True)
@@ -888,28 +932,57 @@ def run_agent_system():
                         pattern=selected_pattern
                     )
                     
-                    # Enhanced response display with proper formatting
-                    # Check if response contains structured data
-                    if "Search Results" in response or "🔍" in response:
+                    # Enhanced response display with NILAM CHAT-style formatting
+                    # Check if response contains HTML (from markdown conversion)
+                    is_html = response.strip().startswith('<') or '<div' in response or '<p>' in response or '<pre>' in response or '<code>' in response
+                    
+                    if is_html:
+                        # Response is already formatted HTML (from _format_agent_response)
+                        # Use NILAM CHAT-style container
+                        st.markdown(f"""
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🧠 Agricultural Expert Response
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif "Search Results" in response or "🔍" in response:
                         # Format search results
-                        st.markdown("### 🔍 Search Results")
-                        st.markdown(response, unsafe_allow_html=True)
+                        st.markdown(f"""
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🔍 Search Results
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
                     elif "🌾" in response or "Crop Recommendation" in response:
                         # Format crop recommendations
                         st.markdown(f"""
-                        <div style='background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-                                    padding: 1.5rem; border-radius: 15px; border-left: 5px solid #4caf50;
-                                    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);'>
-                            {response}
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🌾 Crop Recommendation
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
                     else:
-                        # Regular response
+                        # Regular response - format as HTML if needed
                         st.markdown(f"""
-                        <div style='background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%);
-                                    padding: 1.5rem; border-radius: 15px; border: 2px solid var(--earth-green);
-                                    box-shadow: 0 4px 15px rgba(122, 132, 113, 0.15);'>
-                            {response}
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🧠 Agricultural Expert Response
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
                     
