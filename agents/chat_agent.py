@@ -119,7 +119,7 @@ class ChatAgent(BaseAgent):
                     except:
                         pass
             
-            # Format code blocks with white color
+            # Format code blocks with white color (only code parts)
             response_text = self._format_code_blocks(response_text)
             
             response_time = __import__('time').time() - start_time
@@ -181,7 +181,7 @@ class ChatAgent(BaseAgent):
             # If it's already a string, try to parse it
             if "Search Results:" in search_result:
                 return f"\n\n### 🔍 Additional Information\n\n{search_result.replace('[Search Results:', '').replace(']', '')}\n"
-            return ""
+        return ""
     
     def _format_code_blocks(self, text: str) -> str:
         """Format code blocks with white text color - only changes code parts"""
