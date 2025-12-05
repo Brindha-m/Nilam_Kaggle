@@ -2,22 +2,40 @@
 Chat Agent - LLM-powered conversational agent for agricultural queries
 """
 import uuid
-from google.genai import types
-from google.adk.agents import LlmAgent
-from google.adk.models.google_llm import Gemini
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
-from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
-from google.adk.tools.tool_context import ToolContext
-from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
-from mcp import StdioServerParameters
-from google.adk.apps.app import App, ResumabilityConfig
-from google.adk.tools.function_tool import FunctionTool
+
+# ADK imports - wrapped in try/except for optional installation
+try:
+    from google.adk.agents import LlmAgent
+    from google.adk.models.google_llm import Gemini
+    from google.adk.runners import Runner
+    from google.adk.sessions import InMemorySessionService
+    from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
+    from google.adk.tools.tool_context import ToolContext
+    from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
+    from mcp import StdioServerParameters
+    from google.adk.apps.app import App, ResumabilityConfig
+    from google.adk.tools.function_tool import FunctionTool
+    ADK_AVAILABLE = True
+    print("✅ ADK components imported successfully.")
+except ImportError:
+    # ADK not installed - set to None for optional usage
+    LlmAgent = None
+    Gemini = None
+    Runner = None
+    InMemorySessionService = None
+    McpToolset = None
+    ToolContext = None
+    StdioConnectionParams = None
+    StdioServerParameters = None
+    App = None
+    ResumabilityConfig = None
+    FunctionTool = None
+    ADK_AVAILABLE = False
+    print("⚠️ ADK components not available. Install google-adk package to use ADK features.")
+
 from typing import Dict, Any
 from agents.base_agent import BaseAgent, AgentMessage, AgentContext, AgentState
 from agents.tools.builtin_tools import GoogleSearchTool, CalculatorTool
-
-print("✅ ADK components imported successfully.")
 
 
 class ChatAgent(BaseAgent):
@@ -33,13 +51,24 @@ class ChatAgent(BaseAgent):
         api_key: str = None,
         tools: list = None
     ):
-        # Initialize LLM using ADK
+        # Initialize LLM using ADK (if available) or fallback to google-generativeai
         if api_key and not llm_model:
-            try:
-                # Using ADK's Gemini model
-                llm_model = Gemini(api_key=api_key, model_name="gemini-2.5-flash")
-            except Exception as e:
-                print(f"Error initializing Gemini: {e}")
+            if ADK_AVAILABLE and Gemini:
+                try:
+                    # Using ADK's Gemini model
+                    llm_model = Gemini(api_key=api_key, model_name="gemini-2.5-flash")
+                except Exception as e:
+                    print(f"Error initializing Gemini with ADK: {e}")
+                    llm_model = None
+            else:
+                # Fallback to google-generativeai if ADK not available
+                try:
+                    import google.generativeai as genai
+                    genai.configure(api_key=api_key)
+                    llm_model = genai.GenerativeModel("gemini-2.5-flash")
+                except Exception as e:
+                    print(f"Error initializing Gemini: {e}")
+                    llm_model = None
         
         # Default tools
         if tools is None:
