@@ -186,24 +186,26 @@ class ChatAgent(BaseAgent):
     
     def _format_code_blocks(self, text: str) -> str:
         """
-        Render code snippets with a grey background and white text.
-        Handles slightly malformed fences like ``cpp by normalizing to ```cpp.
+        Render code snippets with a dark grey background and light text.
+        Normalizes sloppy fences like ``cpp -> ```cpp and removes stray language-only lines.
         """
         import re
         import html
 
         # Normalize malformed fenced openings like ``cpp -> ```cpp
-        text = re.sub(r"(^|\n)``(\w+)", r"\1```\2", text)
+        text = re.sub(r"(^|\n)``\s*(\w+)", r"\1```\2", text)
+        # Remove lone double-backtick lines that slip through
+        text = re.sub(r"(^|\n)``\s*\n", r"\1", text)
 
-        # Replace fenced code blocks (triple backticks) with styled HTML, dropping the ``` syntax
+        # Replace fenced code blocks with styled HTML (drops the ``` syntax)
         def format_code_block(match):
             code_content = html.escape(match.group(2).strip())
             return (
-                "<div style=\"background-color: #2d2d2d; padding: 1rem; border-radius: 8px; "
-                "overflow-x: auto; margin: 1rem 0; border: 1px solid #444;\">"
-                "<pre style=\"margin: 0; color: white; font-family: monospace; "
+                "<div style=\"background:#1b1b1b; padding: 1rem; border-radius: 10px; "
+                "overflow-x: auto; margin: 1rem 0; border: 1px solid #333;\">"
+                "<pre style=\"margin: 0; color: #f8f8f2 !important; font-family: 'Fira Code', monospace; "
                 "white-space: pre-wrap; word-wrap: break-word; font-size: 14px;\">"
-                f"<code>{code_content}</code>"
+                f"<code style=\"color: #f8f8f2 !important;\">{code_content}</code>"
                 "</pre></div>"
             )
 
@@ -214,11 +216,14 @@ class ChatAgent(BaseAgent):
             flags=re.DOTALL,
         )
 
-        # Inline code with grey background
+        # Remove stray lines that are just language labels (e.g., "cpp", "arduino") left behind
+        text = re.sub(r"(^|\n)(arduino|cpp|c\+\+|c)\s*(\n)", r"\1", text, flags=re.IGNORECASE)
+
+        # Inline code with dark pill background
         text = re.sub(
             r"`([^`]+)`",
             lambda m: (
-                "<code style=\"background-color: #2d2d2d; color: white; padding: 2px 6px; "
+                "<code style=\"background:#2d2d2d; color: #f8f8f2 !important; padding: 2px 6px; "
                 "border-radius: 4px; font-family: monospace; font-size: 14px;\">"
                 f"{html.escape(m.group(1))}</code>"
             ),
