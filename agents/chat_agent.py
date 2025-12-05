@@ -119,6 +119,9 @@ class ChatAgent(BaseAgent):
                     except:
                         pass
             
+            # Format code blocks with white color
+            response_text = self._format_code_blocks(response_text)
+            
             response_time = __import__('time').time() - start_time
             self.update_metrics("average_response_time", response_time)
             self.update_metrics("successful_requests", 1)
@@ -148,6 +151,27 @@ class ChatAgent(BaseAgent):
                 content=f"I encountered an error: {str(e)}",
                 session_id=context.session_id
             )
+    
+    def _format_code_blocks(self, text: str) -> str:
+        """Format code blocks with white text color"""
+        import re
+        
+        # Format inline code (single backticks)
+        text = re.sub(
+            r'`([^`]+)`',
+            r'<code style="color: white; background-color: #2d2d2d; padding: 2px 6px; border-radius: 3px; font-family: monospace;">\1</code>',
+            text
+        )
+        
+        # Format code blocks (triple backticks)
+        text = re.sub(
+            r'```(\w+)?\n?(.*?)```',
+            r'<pre style="color: white; background-color: #1e1e1e; padding: 1rem; border-radius: 5px; overflow-x: auto; border: 1px solid #444;"><code style="color: white; font-family: monospace;">\2</code></pre>',
+            text,
+            flags=re.DOTALL
+        )
+        
+        return text
     
     def _format_search_results(self, search_result: Dict[str, Any]) -> str:
         """Format search results in a readable way"""
