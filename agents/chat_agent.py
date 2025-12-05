@@ -51,24 +51,20 @@ class ChatAgent(BaseAgent):
         api_key: str = None,
         tools: list = None
     ):
-        # Initialize LLM using ADK (if available) or fallback to google-generativeai
+        # Store API key for later use
+        self.api_key = api_key
+        
+        # Initialize LLM - use google-generativeai for compatibility
+        # ADK components are imported but Gemini model is used differently in ADK
+        # For direct content generation, we use google-generativeai
         if api_key and not llm_model:
-            if ADK_AVAILABLE and Gemini:
-                try:
-                    # Using ADK's Gemini model
-                    llm_model = Gemini(api_key=api_key, model_name="gemini-2.5-flash")
-                except Exception as e:
-                    print(f"Error initializing Gemini with ADK: {e}")
-                    llm_model = None
-            else:
-                # Fallback to google-generativeai if ADK not available
-                try:
-                    import google.generativeai as genai
-                    genai.configure(api_key=api_key)
-                    llm_model = genai.GenerativeModel("gemini-2.5-flash")
-                except Exception as e:
-                    print(f"Error initializing Gemini: {e}")
-                    llm_model = None
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=api_key)
+                llm_model = genai.GenerativeModel("gemini-2.5-flash")
+            except Exception as e:
+                print(f"Error initializing Gemini: {e}")
+                llm_model = None
         
         # Default tools
         if tools is None:
@@ -102,8 +98,13 @@ class ChatAgent(BaseAgent):
             
             # Generate response using LLM
             if self.llm_model:
-                response = self.llm_model.generate_content(prompt)
-                response_text = response.text
+                try:
+                    # Use standard google-generativeai API
+                    response = self.llm_model.generate_content(prompt)
+                    response_text = response.text
+                except Exception as e:
+                    print(f"Error generating content: {e}")
+                    response_text = "I encountered an error generating a response."
             else:
                 response_text = "I'm a chat agent. Please configure the LLM model to get responses."
             
