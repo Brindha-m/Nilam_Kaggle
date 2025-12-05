@@ -119,10 +119,6 @@ class ChatAgent(BaseAgent):
                     except:
                         pass
             
-            # Format code blocks with white color and remove demo links
-            response_text = self._format_code_blocks(response_text)
-            response_text = self._remove_demo_links(response_text)
-            
             response_time = __import__('time').time() - start_time
             self.update_metrics("average_response_time", response_time)
             self.update_metrics("successful_requests", 1)
@@ -184,77 +180,8 @@ class ChatAgent(BaseAgent):
                 return f"\n\n### 🔍 Additional Information\n\n{search_result.replace('[Search Results:', '').replace(']', '')}\n"
         return ""
     
-    def _format_code_blocks(self, text: str) -> str:
-        """
-        Render code snippets with a dark grey background and light text.
-        Normalizes sloppy fences like ``cpp -> ```cpp and removes stray language-only lines.
-        """
-        import re
-        import html
-
-        # Normalize malformed fenced openings like ``cpp -> ```cpp
-        text = re.sub(r"(^|\n)``\s*(\w+)", r"\1```\2", text)
-        # Remove lone double-backtick lines that slip through
-        text = re.sub(r"(^|\n)``\s*\n", r"\1", text)
-
-        # Replace fenced code blocks with styled HTML (drops the ``` syntax)
-        def format_code_block(match):
-            code_content = html.escape(match.group(2).strip())
-            return (
-                "<div style=\"background:#1b1b1b; padding: 1rem; border-radius: 10px; "
-                "overflow-x: auto; margin: 1rem 0; border: 1px solid #333;\">"
-                "<pre style=\"margin: 0; color: #f8f8f2 !important; font-family: 'Fira Code', monospace; "
-                "white-space: pre-wrap; word-wrap: break-word; font-size: 14px;\">"
-                f"<code style=\"color: #f8f8f2 !important;\">{code_content}</code>"
-                "</pre></div>"
-            )
-
-        text = re.sub(
-            r"```(\w+)?\s*(.*?)```",
-            format_code_block,
-            text,
-            flags=re.DOTALL,
-        )
-
-        # Remove stray lines that are just language labels (e.g., "cpp", "arduino") left behind
-        text = re.sub(r"(^|\n)(arduino|cpp|c\+\+|c)\s*(\n)", r"\1", text, flags=re.IGNORECASE)
-
-        # Inline code with dark pill background
-        text = re.sub(
-            r"`([^`]+)`",
-            lambda m: (
-                "<code style=\"background:#2d2d2d; color: #f8f8f2 !important; padding: 2px 6px; "
-                "border-radius: 4px; font-family: monospace; font-size: 14px;\">"
-                f"{html.escape(m.group(1))}</code>"
-            ),
-            text,
-        )
-
-        return text
-    
-    def _remove_demo_links(self, text: str) -> str:
-        """Remove demo links and example URLs from response"""
-        import re
-        
-        # Remove demo/example URLs
-        text = re.sub(r'https?://(?:www\.)?(?:demo|example|test|localhost)[^\s\)]+', '', text, flags=re.IGNORECASE)
-        
-        # Remove lines containing demo links
-        lines = text.split('\n')
-        filtered_lines = []
-        for line in lines:
-            # Skip lines that are just demo links or contain demo/example URLs
-            if re.search(r'(demo|example|test)\.(com|org|net|io)', line, re.IGNORECASE):
-                continue
-            # Skip lines that are just URLs pointing to demo/example sites
-            if re.match(r'^\s*https?://(?:www\.)?(?:demo|example|test)', line, re.IGNORECASE):
-                continue
-            filtered_lines.append(line)
-        
-        return '\n'.join(filtered_lines)
-    
     def _build_prompt(self, user_message: str, history: list, context: AgentContext) -> str:
-        """Build prompt with context and history"""
+        """Build prompt with context and history - similar to NILAM CHAT"""
         prompt = """You are Dr. Agricultural Expert, India's leading farming consultant with 25+ years experience.
 Provide concise, actionable responses with deep insights and data-driven analysis.
 
@@ -276,7 +203,23 @@ Provide concise, actionable responses with deep insights and data-driven analysi
                 prompt += f"{role}: {content}\n"
             prompt += "\n"
         
-        prompt += f"User question: {user_message}\n\n"
-        prompt += "Provide a helpful, accurate response:"
+        prompt += f"QUERY: {user_message}\n\n"
+        prompt += """RESPONSE GUIDELINES:
+- Answer the specific query with innovative, practical solutions
+- Include cutting-edge farming techniques and technologies where relevant
+- Provide data-driven insights with specific numbers, costs, and yields
+- Use markdown tables for structured data (e.g., | Item | Quantity | Rate (₹) | Total Cost (₹) | Notes |)
+- Use bullet points (•) for actionable recommendations
+- Include market trends, government schemes, and risk mitigation strategies
+- Use clear section headers with ## for different aspects
+- Emphasize sustainable and profitable farming practices
+- Provide forward-thinking advice considering climate change and market dynamics
+- Keep the response concise yet comprehensive
+- Focus on actionable insights that can increase productivity and profitability
+- If the user asks for code snippets, examples, or technical implementations, provide them using proper markdown code blocks (```language\ncode\n```)
+- Code snippets should be clear, well-commented, and practical for agricultural applications
+- When providing code, explain what it does and how to use it
+
+Provide a helpful, accurate response:"""
         
         return prompt
