@@ -2,8 +2,6 @@
 Chat Agent - LLM-powered conversational agent for agricultural queries
 """
 import uuid
-
-# ADK imports - wrapped in try/except for optional installation
 try:
     from google.adk.agents import LlmAgent
     from google.adk.models.google_llm import Gemini
@@ -18,19 +16,18 @@ try:
     ADK_AVAILABLE = True
     print("✅ ADK components imported successfully.")
 except ImportError:
-    # ADK not installed - set to None for optional usage
-    LlmAgent = None
-    Gemini = None
-    Runner = None
-    InMemorySessionService = None
-    McpToolset = None
-    ToolContext = None
-    StdioConnectionParams = None
-    StdioServerParameters = None
-    App = None
-    ResumabilityConfig = None
-    FunctionTool = None
-    ADK_AVAILABLE = False
+    # LlmAgent = None
+    # Gemini = None
+    # Runner = None
+    # InMemorySessionService = None
+    # McpToolset = None
+    # ToolContext = None
+    # StdioConnectionParams = None
+    # StdioServerParameters = None
+    # App = None
+    # ResumabilityConfig = None
+    # FunctionTool = None
+    # ADK_AVAILABLE = False
     print("⚠️ ADK components not available. Install google-adk package to use ADK features.")
 
 from typing import Dict, Any
