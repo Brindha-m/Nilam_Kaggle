@@ -152,27 +152,6 @@ class ChatAgent(BaseAgent):
                 session_id=context.session_id
             )
     
-    def _format_code_blocks(self, text: str) -> str:
-        """Format code blocks with white text color"""
-        import re
-        
-        # Format inline code (single backticks)
-        text = re.sub(
-            r'`([^`]+)`',
-            r'<code style="color: white; background-color: #2d2d2d; padding: 2px 6px; border-radius: 3px; font-family: monospace;">\1</code>',
-            text
-        )
-        
-        # Format code blocks (triple backticks)
-        text = re.sub(
-            r'```(\w+)?\n?(.*?)```',
-            r'<pre style="color: white; background-color: #1e1e1e; padding: 1rem; border-radius: 5px; overflow-x: auto; border: 1px solid #444;"><code style="color: white; font-family: monospace;">\2</code></pre>',
-            text,
-            flags=re.DOTALL
-        )
-        
-        return text
-    
     def _format_search_results(self, search_result: Dict[str, Any]) -> str:
         """Format search results in a readable way"""
         if isinstance(search_result, dict) and "results" in search_result:
@@ -202,7 +181,28 @@ class ChatAgent(BaseAgent):
             # If it's already a string, try to parse it
             if "Search Results:" in search_result:
                 return f"\n\n### 🔍 Additional Information\n\n{search_result.replace('[Search Results:', '').replace(']', '')}\n"
-        return ""
+            return ""
+    
+    def _format_code_blocks(self, text: str) -> str:
+        """Format code blocks with white text color - only changes code parts"""
+        import re
+        
+        # Format inline code (single backticks) with white color
+        text = re.sub(
+            r'`([^`]+)`',
+            r'<code style="color: white; background-color: #2d2d2d; padding: 2px 6px; border-radius: 3px; font-family: monospace;">\1</code>',
+            text
+        )
+        
+        # Format code blocks (triple backticks) with white color
+        text = re.sub(
+            r'```(\w+)?\n?(.*?)```',
+            r'<pre style="color: white; background-color: #1e1e1e; padding: 1rem; border-radius: 5px; overflow-x: auto; border: 1px solid #444;"><code style="color: white; font-family: monospace;">\2</code></pre>',
+            text,
+            flags=re.DOTALL
+        )
+        
+        return text
     
     def _build_prompt(self, user_message: str, history: list, context: AgentContext) -> str:
         """Build prompt with context and history"""
