@@ -34,13 +34,22 @@ class ChatAgent(BaseAgent):
         tools: list = None
     ):
         # Initialize LLM using google-generativeai
-        if api_key and not llm_model:
+        # Always use GenerativeModel, not ADK Gemini class
+        if api_key:
             try:
                 # Using standard google-generativeai library
                 genai.configure(api_key=api_key)
                 llm_model = genai.GenerativeModel("gemini-2.5-flash")
             except Exception as e:
                 print(f"Error initializing Gemini: {e}")
+                llm_model = None
+        elif llm_model is not None:
+            # If llm_model is passed but it's not a GenerativeModel, try to recreate it
+            # Check if it's an ADK Gemini object (which doesn't have generate_content)
+            if hasattr(llm_model, 'generate') and not hasattr(llm_model, 'generate_content'):
+                # This is likely an ADK Gemini object, we need to recreate it
+                print("Warning: ADK Gemini object detected. Please provide api_key instead.")
+                llm_model = None
         
         # Default tools
         if tools is None:
@@ -74,8 +83,14 @@ class ChatAgent(BaseAgent):
             
             # Generate response using LLM
             if self.llm_model:
-                response = self.llm_model.generate_content(prompt)
-                response_text = response.text
+                # Ensure we're using GenerativeModel with generate_content method
+                if hasattr(self.llm_model, 'generate_content'):
+                    response = self.llm_model.generate_content(prompt)
+                    response_text = response.text
+                else:
+                    # Fallback if wrong model type is passed
+                    response_text = "Error: LLM model is not properly configured. Please provide a valid API key."
+                    self.log_trace("llm_model_error", {"error": "Model does not have generate_content method"})
             else:
                 response_text = "I'm a chat agent. Please configure the LLM model to get responses."
             
