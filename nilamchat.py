@@ -523,6 +523,81 @@ st.markdown("""
         color: var(--text-primary) !important; 
         font-size: 16px;
     }
+    
+    /* Code block styling - white text for code snippets - COMPREHENSIVE */
+    /* All code blocks and inline code */
+    pre,
+    code,
+    pre code,
+    code pre,
+    .response-content pre,
+    .response-content pre code,
+    .response-content code,
+    /* Streamlit markdown code blocks */
+    div[data-testid="stMarkdownContainer"] pre,
+    div[data-testid="stMarkdownContainer"] pre code,
+    div[data-testid="stMarkdownContainer"] code,
+    /* Chat message code blocks */
+    .stChatMessage pre,
+    .stChatMessage pre code,
+    .stChatMessage code,
+    /* All possible code block selectors */
+    div pre,
+    div pre code,
+    div code,
+    p code,
+    li code,
+    span code,
+    /* Streamlit code component */
+    .stCodeBlock pre,
+    .stCodeBlock code,
+    /* Generic code elements */
+    * pre,
+    * pre code,
+    * code {
+        color: white !important;
+        background-color: #2d3436 !important;
+        font-family: 'Courier New', Courier, monospace !important;
+    }
+    
+    /* Code block containers */
+    pre,
+    .response-content pre,
+    div[data-testid="stMarkdownContainer"] pre,
+    .stChatMessage pre,
+    div pre {
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        overflow-x: auto !important;
+        border: 1px solid #636e72 !important;
+        margin: 1rem 0 !important;
+        background-color: #2d3436 !important;
+    }
+    
+    /* Code inside pre blocks */
+    pre code,
+    .response-content pre code,
+    div[data-testid="stMarkdownContainer"] pre code,
+    .stChatMessage pre code,
+    div pre code {
+        padding: 0 !important;
+        background-color: transparent !important;
+        color: white !important;
+    }
+    
+    /* Inline code (not in pre blocks) */
+    code:not(pre code),
+    .response-content code:not(pre code),
+    div[data-testid="stMarkdownContainer"] code:not(pre code),
+    p code,
+    li code,
+    span code {
+        padding: 0.2rem 0.4rem !important;
+        border-radius: 4px !important;
+        color: white !important;
+        background-color: #2d3436 !important;
+        font-size: 0.9em !important;
+    }
      
 </style>
 """, unsafe_allow_html=True)
