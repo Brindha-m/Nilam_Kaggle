@@ -1,373 +1,1149 @@
-"""
-Agent System Integration for Main Application
-Integrates multi-agent system with Streamlit UI
-"""
 import streamlit as st
-import os
 import sys
-from typing import Optional
-from pathlib import Path
+import os
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-def get_gemini_api_key():
-    """
-    Get Gemini API key from multiple sources:
-    1. Streamlit secrets (current project)
-    2. External secrets file (Nilam_Kaggle/.streamlit/secrets.toml)
-    3. Environment variable
-    """
-    # Try Streamlit secrets first
-    try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
-        if api_key:
-            return api_key
-    except:
-        pass
-    
-    # Try external secrets file (Nilam_Kaggle)
-    try:
-        current_dir = Path(__file__).parent.absolute()
-        # Try different possible paths
-        possible_paths = [
-            current_dir.parent / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
-            Path.home() / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
-            Path("..") / "Nilam_Kaggle" / ".streamlit" / "secrets.toml",
-            Path("../Nilam_Kaggle/.streamlit/secrets.toml"),
-        ]
-        
-        for secrets_path in possible_paths:
-            if secrets_path.exists():
-                try:
-                    # Try tomllib (Python 3.11+)
-                    import tomllib
-                    with open(secrets_path, 'rb') as f:
-                        secrets = tomllib.load(f)
-                        api_key = secrets.get("GEMINI_API_KEY")
-                        if api_key:
-                            return api_key
-                except ImportError:
-                    # Fallback to toml library or manual parsing
-                    try:
-                        import toml
-                        with open(secrets_path, 'r') as f:
-                            secrets = toml.load(f)
-                            api_key = secrets.get("GEMINI_API_KEY")
-                            if api_key:
-                                return api_key
-                    except ImportError:
-                        # Manual parsing as last resort
-                        with open(secrets_path, 'r') as f:
-                            for line in f:
-                                if line.strip().startswith('GEMINI_API_KEY'):
-                                    # Extract value from line like: GEMINI_API_KEY = "value"
-                                    parts = line.split('=', 1)
-                                    if len(parts) == 2:
-                                        value = parts[1].strip().strip('"').strip("'")
-                                        if value:
-                                            return value
-    except Exception as e:
-        print(f"Could not read external secrets file: {e}")
-    
-    # Try environment variable
-    api_key = os.getenv("GEMINI_API_KEY")
-    if api_key:
-        return api_key
-    
-    return ""
-
-from agents import (
-    ChatAgent,
-    CropRecommendationAgent,
-    DiseaseDetectionAgent,
-    LongRunningAgent,
-    MultiAgentOrchestrator,
-    AgentPattern,
-    InMemorySessionService,
-    MemoryBank,
-    ObservabilitySystem,
-    AgentEvaluator,
-    A2AProtocol,
-    AgentMessage,
-    AgentContext
+# Page configuration
+st.set_page_config(
+    layout="wide",
+    initial_sidebar_state="expanded",
+    page_title="Nilam - Your Agricultural Assistant",
+    page_icon="🌱"
 )
-from agents.tools.mcp_tools import MCPToolRegistry, MCPWeatherTool, MCPCropRecommendationTool
-from agents.tools.openapi_tools import OpenAPIToolRegistry, OpenAPIWeatherTool, OpenAPICropTool
 
-
-@st.cache_resource
-def initialize_agent_system():
-    """Initialize the multi-agent system (cached for performance)"""
-    # Initialize core components
-    memory_bank = MemoryBank(storage_path="data/memory_bank.json")
-    session_service = InMemorySessionService(memory_bank=memory_bank)
-    observability = ObservabilitySystem(log_level="INFO")
-    evaluator = AgentEvaluator()
-    a2a_protocol = A2AProtocol()
+# Enhanced CSS with improved selectbox styling
+st.markdown("""
+<style>
+    :root {
+        --cream-light: #fefcf8;
+        --cream-medium: #f5f1e8;
+        --cream-dark: #ede4d3;
+        --earth-green: #7a8471;
+        --earth-brown: #8b7355;
+        --text-primary: #2d3436;
+        --text-secondary: #636e72;
+        --graph-text: #2d3436;
+        --graph-text-secondary: #636e72;
+        --sidebar-text: #ffffff;
+        --selection-text: #ffffff;
+    }
     
-    # Initialize orchestrator
-    orchestrator = MultiAgentOrchestrator(session_service)
-    
-    # Get API key from multiple sources (including external Nilam_Kaggle secrets)
-    gemini_api_key = get_gemini_api_key()
-    
-    # Create agents
-    chat_agent = ChatAgent(
-        agent_id="chat_agent",
-        api_key=gemini_api_key
-    )
-    crop_agent = CropRecommendationAgent(agent_id="crop_agent")
-    disease_agent = DiseaseDetectionAgent(agent_id="disease_agent")
-    long_running_agent = LongRunningAgent(
-        agent_id="long_running_agent",
-        session_service=session_service
-    )
-    
-    # Register agents with orchestrator
-    orchestrator.register_agents([
-        chat_agent,
-        crop_agent,
-        disease_agent,
-        long_running_agent
-    ])
-    
-    # Register agents with A2A protocol
-    a2a_protocol.register_agent("chat_agent", ["conversation", "query_answering"])
-    a2a_protocol.register_agent("crop_agent", ["crop_recommendation", "weather_analysis"])
-    a2a_protocol.register_agent("disease_agent", ["disease_detection", "image_processing"])
-    a2a_protocol.register_agent("long_running_agent", ["long_running_operations"])
-    
-    # Initialize tool registries
-    mcp_registry = MCPToolRegistry()
-    mcp_registry.register_tool(MCPWeatherTool())
-    mcp_registry.register_tool(MCPCropRecommendationTool())
-    
-    openapi_registry = OpenAPIToolRegistry()
-    openapi_registry.register_tool(OpenAPIWeatherTool())
-    openapi_registry.register_tool(OpenAPICropTool())
-    
-    return {
-        "orchestrator": orchestrator,
-        "session_service": session_service,
-        "memory_bank": memory_bank,
-        "observability": observability,
-        "evaluator": evaluator,
-        "a2a_protocol": a2a_protocol,
-        "mcp_registry": mcp_registry,
-        "openapi_registry": openapi_registry,
-        "agents": {
-            "chat": chat_agent,
-            "crop": crop_agent,
-            "disease": disease_agent,
-            "long_running": long_running_agent
-        }
+    .stApp {
+        background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%);
     }
 
 
-def _format_agent_response(response: str) -> str:
-    """Format agent response for better display"""
-    import re
+    .main-header {
+        background: linear-gradient(135deg, var(--earth-brown) 0%, var(--cream-dark) 50%, var(--earth-green) 100%);
+        padding: 2.5rem;
+        border-radius: 20px;
+        color: black;  /* Changed to black */
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        font-weight: 700;
+        border: 1px solid rgba(255,255,255,0.2);
+        font-size: 8rem;
+        text-shadow: none;
+    }
+
     
-    # Remove raw search result dictionaries
-    response = re.sub(r'\[Search Results:.*?\]', '', response, flags=re.DOTALL)
+    .expert-response-container {
+        background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%);
+        border: 3px solid var(--earth-green);
+        border-radius: 20px;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(122, 132, 113, 0.2);
+        overflow: hidden;
+    }
     
-    # Clean up multiple newlines
-    response = re.sub(r'\n{3,}', '\n\n', response)
+    .response-header {
+        background: linear-gradient(135deg, var(--earth-green) 0%, var(--earth-brown) 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        font-size: 1.5rem;
+        font-weight: bold;
+        text-align: center;
+        border-bottom: 3px solid var(--earth-brown);
+    }
     
-    # Format crop recommendations better
-    if '🌾' in response or 'Crop Recommendation' in response:
-        # Ensure proper markdown formatting
-        response = re.sub(r'\*\*Recommended Crop:\*\*', '**Recommended Crop:**', response)
-        response = re.sub(r'\*\*Confidence:\*\*', '**Confidence:**', response)
+    .response-content {
+        padding: 2.5rem;
+        color: var(--text-primary);
+        line-height: 1.8;
+        font-size: 16px;
+        text-align: justify;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
     
-    # Clean up any remaining JSON-like structures
-    response = re.sub(r'\{[^}]*query[^}]*\}', '', response)
+    .response-content .section-header {
+        background: linear-gradient(135deg, var(--earth-brown) 0%, var(--earth-green) 100%);
+        color: white !important;
+        padding: 1.2rem 2rem;
+        margin: 2.5rem -2.5rem 2rem -2.5rem;
+        font-size: 1.4rem !important;
+        font-weight: bold !important;
+        text-align: center;
+        border-radius: 0;
+        box-shadow: 0 4px 15px rgba(139, 115, 85, 0.3);
+    }
     
-    return response.strip()
+    .bullet-point {
+        background: linear-gradient(135deg, var(--cream-medium) 0%, var(--cream-dark) 100%);
+        margin: 0.8rem 0;
+        padding: 1rem 1.5rem;
+        border-left: 5px solid var(--earth-green);
+        border-radius: 0 10px 10px 0;
+        box-shadow: 0 3px 10px rgba(122, 132, 113, 0.15);
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-align: left;
+        line-height: 1.6;
+    }
+    
+    .bullet-point:hover {
+        transform: translateX(10px);
+        box-shadow: 0 5px 15px rgba(122, 132, 113, 0.25);
+    }
+    
+    .important-note {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border: 2px solid #f39c12;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        box-shadow: 0 6px 20px rgba(243, 156, 18, 0.2);
+        font-weight: 600;
+        color: #856404;
+        text-align: left;
+        line-height: 1.6;
+    }
+    
+    .response-table {
+        margin: 2rem 0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        background: white;
+    }
+    
+    .response-table table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 0 !important;
+    }
+    
+    .response-table th {
+        background: linear-gradient(135deg, var(--earth-green) 0%, var(--earth-brown) 100%) !important;
+        color: white !important;
+        font-weight: bold !important;
+        padding: 1.2rem !important;
+        text-align: center !important;
+        font-size: 1rem !important;
+        border-bottom: 3px solid var(--earth-brown) !important;
+    }
+    
+    .response-table td {
+        padding: 1rem !important;
+        border: 1px solid #e0e0e0 !important;
+        color: #2d3436 !important;
+        font-size: 0.95rem !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+    }
+    
+    .response-table tr:nth-child(even) {
+        background: linear-gradient(135deg, #f9f9f9 0%, #f5f5f5 100%) !important;
+    }
+    
+    .response-table tr:hover {
+        background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%) !important;
+        transform: scale(1.01);
+        transition: all 0.3s ease !important;
+    }
+    
+    .response-section-card {
+        background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%);
+        border: 2px solid var(--earth-green);
+        border-radius: 15px;
+        margin: 2rem 0;
+        padding: 0;
+        box-shadow: 0 8px 25px rgba(122, 132, 113, 0.2);
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, var(--earth-green) 0%, var(--earth-brown) 100%);
+        color: white;
+        padding: 1.2rem 2rem;
+        font-size: 1.3rem;
+        font-weight: bold;
+        text-align: center;
+        border-bottom: 3px solid var(--earth-brown);
+    }
+    
+    .card-content {
+        padding: 2rem;
+        color: var(--text-primary);
+        line-height: 1.7;
+        text-align: justify;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .metric-card {
+        background: linear-gradient(135deg, var(--cream-medium) 0%, var(--cream-dark) 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--earth-brown);
+        text-align: center;
+        color: var(--text-primary);
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(139, 115, 85, 0.15);
+        transition: transform 0.3s ease;
+    }
+    
+    .recommendation-box {
+        background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 2px solid var(--earth-green);
+        margin: 1rem 0;
+        color: var(--text-primary);
+        font-weight: 500;
+        box-shadow: 0 4px 15px rgba(122, 132, 113, 0.15);
+        text-align: left;
+        line-height: 1.6;
+    }
+    
+    .stButton > button {
+        background: linear-gradient(135deg, var(--earth-green) 0%, var(--earth-brown) 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 16px;
+        padding: 0.75rem 2rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(122, 132, 113, 0.3);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(122, 132, 113, 0.4);
+    }
+    
+    .stButton > button[data-testid*="enhanced_quick_"] {
+        background: linear-gradient(135deg, var(--earth-green) 0%, var(--earth-brown) 100%) !important;
+        color: white !important;
+        border: 2px solid var(--earth-green) !important;
+        font-size: 13px !important;
+        padding: 0.8rem 1rem !important;
+        margin: 0.4rem 0 !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stButton > button[data-testid*="enhanced_quick_"]:hover {
+        background: linear-gradient(135deg, #7a8471 0%, #8b7355 100%) !important;
+        transform: translateX(5px) !important;
+        box-shadow: 0 4px 12px rgba(122, 132, 113, 0.3) !important;
+    }
+    
+    h1, h2, h3, h4 { 
+        color: var(--text-primary) !important; 
+        font-weight: 700;
+    }
+    
+    /* Increase h1 font size */
+    h1 {
+        font-size: 2.5rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Large h1 header styling */
+    h1 {
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+        text-align: center !important;
+        margin-bottom: 2rem !important;
+        background: linear-gradient(135deg, var(--earth-brown) 0%, var(--cream-dark) 50%, var(--earth-green) 100%) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        padding: 1rem 0 !important;
+    }
+    
+    p, li, span, div { 
+        color: var(--text-primary) !important; 
+        font-size: 16px;
+    }
+    
+    /* Main app specific styles */
+    .section-container {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        padding: 2rem;
+        margin: 1rem 0;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+            
+            /* Sidebar Selectbox label */
+div[data-testid="stSidebar"] label {
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+/* Selected value inside the selectbox */
+div[data-testid="stSidebar"] .stSelectbox div[role="combobox"] input {
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+/* Dropdown arrow icon */
+div[data-testid="stSidebar"] .stSelectbox svg {
+    fill: white !important;
+}
+
+/* Dropdown option text */
+div[data-testid="stSidebar"] .stSelectbox div[role="listbox"] div {
+    color: white !important;
+}
+
+/* Comprehensive dropdown list styling */
+[data-testid="stSidebar"] .stSelectbox div[role="listbox"] *,
+[data-testid="stSidebar"] .stSelectbox div[role="listbox"] div,
+[data-testid="stSidebar"] .stSelectbox div[role="listbox"] span,
+[data-testid="stSidebar"] .stSelectbox div[role="listbox"] p,
+[data-testid="stSidebar"] .stSelectbox div[role="listbox"] li,
+[data-testid="stSidebar"] .stSelectbox div[role="listbox"] ul,
+[data-testid="stSidebar"] .stSelectbox div[role="listbox"] ol {
+    color: white !important;
+    background-color: var(--earth-green) !important;
+}
+
+/* Dropdown popup styling */
+[data-testid="stSidebar"] div[data-baseweb="popover"] *,
+[data-testid="stSidebar"] div[data-baseweb="popover"] div,
+[data-testid="stSidebar"] div[data-baseweb="popover"] span,
+[data-testid="stSidebar"] div[data-baseweb="popover"] p,
+[data-testid="stSidebar"] div[data-baseweb="popover"] li,
+[data-testid="stSidebar"] div[data-baseweb="popover"] ul,
+[data-testid="stSidebar"] div[data-baseweb="popover"] ol {
+    color: white !important;
+    background-color: var(--earth-green) !important;
+}
+
+/* Force white text for all dropdown elements */
+[data-testid="stSidebar"] .stSelectbox *,
+[data-testid="stSidebar"] .stSelectbox div *,
+[data-testid="stSidebar"] .stSelectbox div div *,
+[data-testid="stSidebar"] .stSelectbox div div div * {
+    color: white !important;
+}
+
+/* Ultra comprehensive dropdown styling - force white text */
+[data-testid="stSidebar"] .stSelectbox,
+[data-testid="stSidebar"] .stSelectbox *,
+[data-testid="stSidebar"] .stSelectbox > div,
+[data-testid="stSidebar"] .stSelectbox > div > div,
+[data-testid="stSidebar"] .stSelectbox > div > div > div,
+[data-testid="stSidebar"] .stSelectbox span,
+[data-testid="stSidebar"] .stSelectbox div span,
+[data-testid="stSidebar"] .stSelectbox div div span,
+[data-testid="stSidebar"] .stSelectbox div div div span,
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] .stSelectbox div label,
+[data-testid="stSidebar"] .stSelectbox div div label,
+[data-testid="stSidebar"] .stSelectbox div div div label,
+[data-testid="stSidebar"] .stSelectbox p,
+[data-testid="stSidebar"] .stSelectbox div p,
+[data-testid="stSidebar"] .stSelectbox div div p,
+[data-testid="stSidebar"] .stSelectbox div div div p,
+[data-testid="stSidebar"] .stSelectbox strong,
+[data-testid="stSidebar"] .stSelectbox div strong,
+[data-testid="stSidebar"] .stSelectbox div div strong,
+[data-testid="stSidebar"] .stSelectbox div div div strong,
+[data-testid="stSidebar"] .stSelectbox em,
+[data-testid="stSidebar"] .stSelectbox div em,
+[data-testid="stSidebar"] .stSelectbox div div em,
+[data-testid="stSidebar"] .stSelectbox div div div em,
+[data-testid="stSidebar"] .stSelectbox b,
+[data-testid="stSidebar"] .stSelectbox div b,
+[data-testid="stSidebar"] .stSelectbox div div b,
+[data-testid="stSidebar"] .stSelectbox div div div b,
+[data-testid="stSidebar"] .stSelectbox i,
+[data-testid="stSidebar"] .stSelectbox div i,
+[data-testid="stSidebar"] .stSelectbox div div i,
+[data-testid="stSidebar"] .stSelectbox div div div i {
+    color: white !important;
+}
+
+/* Force white text for all possible dropdown selectors */
+[data-testid="stSidebar"] div[data-baseweb="select"] *,
+[data-testid="stSidebar"] div[data-baseweb="select"] span,
+[data-testid="stSidebar"] div[data-baseweb="select"] div,
+[data-testid="stSidebar"] div[data-baseweb="select"] div span,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div span,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div div,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div div span,
+[data-testid="stSidebar"] div[data-baseweb="select"] label,
+[data-testid="stSidebar"] div[data-baseweb="select"] div label,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div label,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div div label,
+[data-testid="stSidebar"] div[data-baseweb="select"] p,
+[data-testid="stSidebar"] div[data-baseweb="select"] div p,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div p,
+[data-testid="stSidebar"] div[data-baseweb="select"] div div div p {
+    color: white !important;
+}
+
+/* Force white text for dropdown options specifically */
+[data-testid="stSidebar"] .stSelectbox option,
+[data-testid="stSidebar"] .stSelectbox select option,
+[data-testid="stSidebar"] div[data-baseweb="select"] option,
+[data-testid="stSidebar"] div[data-baseweb="select"] select option,
+[data-testid="stSidebar"] [role="option"],
+[data-testid="stSidebar"] [role="option"] *,
+[data-testid="stSidebar"] .stSelectbox [role="option"],
+[data-testid="stSidebar"] .stSelectbox [role="option"] *,
+[data-testid="stSidebar"] div[data-baseweb="select"] [role="option"],
+[data-testid="stSidebar"] div[data-baseweb="select"] [role="option"] * {
+    color: white !important;
+    background-color: var(--earth-green) !important;
+}
+
+/* Force white text for all text elements in sidebar */
+[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* Make selectbox labels black - Ultra comprehensive */
+.stSelectbox label,
+div[data-baseweb="select"] label,
+[data-testid="stSelectbox"] label {
+    color: black !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+}
+
+/* Force black color for all possible label selectors */
+label,
+.stSelectbox label,
+div[data-baseweb="select"] label,
+[data-testid="stSelectbox"] label,
+.stSelectbox div label,
+div[data-baseweb="select"] div label,
+[data-testid="stSelectbox"] div label,
+.stSelectbox div div label,
+div[data-baseweb="select"] div div label,
+[data-testid="stSelectbox"] div div label,
+.stSelectbox div div div label,
+div[data-baseweb="select"] div div div label,
+[data-testid="stSelectbox"] div div div label {
+    color: black !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+}
+
+/* Ultra specific targeting for selectbox labels */
+.stSelectbox > div > label,
+div[data-baseweb="select"] > div > label,
+[data-testid="stSelectbox"] > div > label,
+.stSelectbox > div > div > label,
+div[data-baseweb="select"] > div > div > label,
+[data-testid="stSelectbox"] > div > div > label {
+    color: black !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+}
+
+/* Force black color for all label elements */
+* label {
+    color: black !important;
+    font-weight: 600 !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+}
+
+/* Force white text for all selectbox elements in main content */
+.stSelectbox *,
+.stSelectbox label,
+.stSelectbox span,
+.stSelectbox div,
+.stSelectbox div span,
+.stSelectbox div div,
+.stSelectbox div div span,
+.stSelectbox div div div,
+.stSelectbox div div div span,
+.stSelectbox option,
+.stSelectbox select,
+.stSelectbox select option {
+    color: white !important;
+}
+
+/* Force white text for all baseweb select elements */
+div[data-baseweb="select"] *,
+div[data-baseweb="select"] label,
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div,
+div[data-baseweb="select"] div span,
+div[data-baseweb="select"] div div,
+div[data-baseweb="select"] div div span,
+div[data-baseweb="select"] div div div,
+div[data-baseweb="select"] div div div span,
+div[data-baseweb="select"] option,
+div[data-baseweb="select"] select,
+div[data-baseweb="select"] select option {
+    color: white !important;
+}
+
+/* Force white text for all testid selectbox elements */
+[data-testid="stSelectbox"] *,
+[data-testid="stSelectbox"] label,
+[data-testid="stSelectbox"] span,
+[data-testid="stSelectbox"] div,
+[data-testid="stSelectbox"] div span,
+[data-testid="stSelectbox"] div div,
+[data-testid="stSelectbox"] div div span,
+[data-testid="stSelectbox"] div div div,
+[data-testid="stSelectbox"] div div div span,
+[data-testid="stSelectbox"] option,
+[data-testid="stSelectbox"] select,
+[data-testid="stSelectbox"] select option {
+    color: white !important;
+}
+
+/* Force white text for dropdown popup content */
+div[data-baseweb="popover"] *,
+div[data-baseweb="popover"] label,
+div[data-baseweb="popover"] span,
+div[data-baseweb="popover"] div,
+div[data-baseweb="popover"] div span,
+div[data-baseweb="popover"] div div,
+div[data-baseweb="popover"] div div span,
+div[data-baseweb="popover"] div div div,
+div[data-baseweb="popover"] div div div span,
+div[data-baseweb="popover"] option,
+div[data-baseweb="popover"] select,
+div[data-baseweb="popover"] select option {
+    color: white !important;
+    background-color: var(--earth-green) !important;
+}
+
+/* Force white text for role option elements */
+[role="option"] *,
+[role="option"] label,
+[role="option"] span,
+[role="option"] div,
+[role="option"] div span,
+[role="option"] div div,
+[role="option"] div div span,
+[role="option"] div div div,
+[role="option"] div div div span {
+    color: white !important;
+    background-color: var(--earth-green) !important;
+}
+
+/* Ultra comprehensive selectbox styling for main content */
+.stSelectbox,
+.stSelectbox *,
+.stSelectbox > div,
+.stSelectbox > div > div,
+.stSelectbox > div > div > div,
+.stSelectbox span,
+.stSelectbox div span,
+.stSelectbox div div span,
+.stSelectbox div div div span,
+.stSelectbox p,
+.stSelectbox div p,
+.stSelectbox div div p,
+.stSelectbox div div div p,
+.stSelectbox strong,
+.stSelectbox div strong,
+.stSelectbox div div strong,
+.stSelectbox div div div strong,
+.stSelectbox em,
+.stSelectbox div em,
+.stSelectbox div div em,
+.stSelectbox div div div em,
+.stSelectbox b,
+.stSelectbox div b,
+.stSelectbox div div b,
+.stSelectbox div div div b,
+.stSelectbox i,
+.stSelectbox div i,
+.stSelectbox div div i,
+.stSelectbox div div div i {
+    color: white !important;
+}
 
 
-def get_or_create_session(session_service: InMemorySessionService, user_id: Optional[str] = None) -> str:
-    """Get or create a session for the user"""
-    if "agent_session_id" not in st.session_state:
-        session_id = session_service.create_session(user_id=user_id)
-        st.session_state.agent_session_id = session_id
-    return st.session_state.agent_session_id
 
+/* Force white text for all sidebar titles and text */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] h4,
+[data-testid="stSidebar"] h5,
+[data-testid="stSidebar"] h6,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div,
+[data-testid="stSidebar"] strong,
+[data-testid="stSidebar"] em,
+[data-testid="stSidebar"] b,
+[data-testid="stSidebar"] i,
+[data-testid="stSidebar"] li,
+[data-testid="stSidebar"] ul,
+[data-testid="stSidebar"] ol {
+    color: white !important;
+}
 
-def process_with_agents(
-    user_input: str,
-    agent_system: dict,
-    pattern: AgentPattern = AgentPattern.SEQUENTIAL
-) -> str:
-    """Process user input through the multi-agent system"""
-    session_id = get_or_create_session(agent_system["session_service"])
-    context = agent_system["session_service"].get_context(session_id)
+/* Remove dark background from chat messages - Comprehensive override */
+div[data-testid="stChatMessage"],
+div[data-testid="stChatMessage"] > div,
+div[data-testid="stChatMessage"] > div > div,
+.stChatMessage,
+.stChatMessage > div {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Assistant chat message - light background */
+div[data-testid="stChatMessage"][data-message="assistant"],
+div[data-testid="stChatMessage"][data-message="assistant"] > div,
+div[data-testid="stChatMessage"][data-message="assistant"] > div > div,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+    background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%) !important;
+    background-color: var(--cream-light) !important;
+    border: 1px solid var(--earth-green) !important;
+    border-radius: 15px !important;
+    padding: 1rem !important;
+    margin: 0.5rem 0 !important;
+}
+
+/* User chat message - light blue background */
+div[data-testid="stChatMessage"][data-message="user"],
+div[data-testid="stChatMessage"][data-message="user"] > div,
+div[data-testid="stChatMessage"][data-message="user"] > div > div,
+div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+    background-color: #e3f2fd !important;
+    border: 1px solid #2196f3 !important;
+    border-radius: 15px !important;
+    padding: 1rem !important;
+    margin: 0.5rem 0 !important;
+}
+
+/* Remove any dark backgrounds from chat containers */
+div[data-testid="stChatMessageContainer"],
+div[data-testid="stChatMessageContainer"] > div {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Chat input styling - light background */
+div[data-testid="stChatInputContainer"],
+div[data-testid="stChatInputContainer"] > div,
+div[data-testid="stChatInputContainer"] input,
+div[data-testid="stChatInputContainer"] textarea {
+    background: white !important;
+    background-color: white !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--earth-green) !important;
+    border-radius: 15px !important;
+}
+
+/* Override any Streamlit dark theme for chat */
+.stChatMessage,
+[class*="chatMessage"],
+[class*="ChatMessage"] {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Ultra comprehensive sidebar text styling */
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] * *,
+[data-testid="stSidebar"] * * * {
+    color: white !important;
+}
+
+/* Specific sidebar title styling */
+[data-testid="stSidebar"] .css-1d391kg,
+[data-testid="stSidebar"] .css-1lcbmhc,
+[data-testid="stSidebar"] .css-1v0mbdj,
+[data-testid="stSidebar"] [data-testid="stSidebar"] {
+    color: white !important;
+}
+
+    /* Code block styling - white text for code snippets */
+    .response-content pre,
+    .response-content pre code,
+    pre code,
+    code {
+        color: white !important;
+        background-color: #2d3436 !important;
+        font-family: 'Courier New', Courier, monospace !important;
+    }
     
-    if not context:
-        return "Error: Could not create session context"
+    .response-content pre {
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        overflow-x: auto !important;
+        border: 1px solid #636e72 !important;
+        margin: 1rem 0 !important;
+    }
     
-    # Create user message
-    user_message = AgentMessage(
-        sender="user",
-        receiver="orchestrator",
-        content=user_input,
-        session_id=session_id
-    )
+    .response-content pre code {
+        padding: 0 !important;
+        background-color: transparent !important;
+        color: white !important;
+    }
     
-    # Add message to session
-    agent_system["session_service"].add_message(
-        session_id,
-        "user",
-        user_input
-    )
+    .response-content code:not(pre code) {
+        padding: 0.2rem 0.4rem !important;
+        border-radius: 4px !important;
+        color: white !important;
+        background-color: #2d3436 !important;
+        font-size: 0.9em !important;
+    }
     
-    # Track observability
-    start_time = __import__('time').time()
-    agent_system["observability"].trace("orchestrator", "request_start", metadata={"input": user_input[:100]})
+    /* Ensure code blocks in agent responses have white text */
+    div[data-testid="stMarkdownContainer"] pre code,
+    div[data-testid="stMarkdownContainer"] code {
+        color: white !important;
+        background-color: #2d3436 !important;
+    }
     
+    div[data-testid="stMarkdownContainer"] pre {
+        background-color: #2d3436 !important;
+        border: 1px solid #636e72 !important;
+    }
+
+            
+</style>
+""", unsafe_allow_html=True)
+
+def run_nilamchat():
+    """Run nilamchat functionality directly"""
     try:
-        # Route message through orchestrator
-        results = agent_system["orchestrator"].route_message(
-            user_message,
-            context,
-            pattern=pattern
-        )
+        # Add the current directory to Python path
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.append(current_dir)
         
-        # Extract final response
-        if isinstance(results, list):
-            final_response = results[-1].content if results else "No response generated"
-        elif isinstance(results, dict):
-            # Parallel execution - combine results
-            final_response = "\n\n".join([
-                f"**{agent_id}**: {msg.content[:200]}"
-                for agent_id, msg in results.items()
-            ])
+        # Import nilamchat module
+        import nilamchat
+        
+        # Run the nilamchat main function
+        if hasattr(nilamchat, 'main'):
+            nilamchat.main()
         else:
-            final_response = str(results)
-        
-        # Clean and format response
-        final_response = _format_agent_response(final_response)
-        
-        # Calculate response time
-        response_time = (__import__('time').time() - start_time) * 1000
-        
-        # Track observability
-        agent_system["observability"].trace(
-            "orchestrator",
-            "request_complete",
-            duration_ms=response_time,
-            metadata={"response_length": len(final_response)}
-        )
-        agent_system["observability"].record_metric(
-            "response_time_ms",
-            response_time,
-            tags={"pattern": pattern.value}
-        )
-        
-        # Add response to session
-        agent_system["session_service"].add_message(
-            session_id,
-            "assistant",
-            final_response
-        )
-        
-        # Evaluate agent performance
-        agent_system["evaluator"].evaluate_agent(
-            agent_id="orchestrator",
-            user_query=user_input,
-            agent_response=final_response,
-            response_time_ms=response_time,
-            success=True
-        )
-        
-        return final_response
-        
+            st.error("No main function found in nilamchat.py")
+            
     except Exception as e:
-        # Track error
-        response_time = (__import__('time').time() - start_time) * 1000
-        agent_system["observability"].log(
-            "ERROR",
-            f"Agent processing error: {str(e)}",
-            agent_id="orchestrator",
-            metadata={"error": str(e)}
+        st.error(f"Error loading Nilam Chat: {str(e)}")
+        # st.info("Please ensure nilamchat.py is in the same directory.")
+
+def run_leafine():
+    """Run leafine functionality"""
+    try:
+        # Add the current directory to Python path
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir not in sys.path:
+            sys.path.append(current_dir)
+        
+        # Import leafine module
+        import leafine
+        
+        # Run the leafine main function
+        if hasattr(leafine, 'main'):
+            leafine.main()
+        else:
+            st.error("No main function found in leafine.py")
+            
+    except Exception as e:
+        st.error(f"Error loading Leafine: {str(e)}")
+        st.info("Please ensure leafine.py is in the same directory.")
+
+
+def run_agent_system():
+    """Run multi-agent system interface with enhanced UI"""
+    try:
+        # Import agent integration
+        import agent_integration
+        
+        st.markdown("""
+            <div class='main-header'>
+                    <div style='font-size: 2.4rem; margin-top: 0.5rem; margin-bottom: 0.5rem; opacity: 0.9;'>
+                        🤖 Multi-Agent System
+                    </div>
+                <p style='font-size: 16px; opacity: 0.9;'>MCP Tools • Agent Orchestration • Advanced AI • Real-time Processing</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Initialize agent system
+        agent_system = agent_integration.initialize_agent_system()
+        
+        # Sidebar configuration
+        st.sidebar.markdown("### 🛠️ **Agent Configuration**")
+        
+        # Pattern selection
+        pattern_option = st.sidebar.selectbox(
+            "🔄 Agent Pattern:",
+            ["Sequential", "Parallel", "Loop"],
+            help="Sequential: Agents run one after another\nParallel: Agents run simultaneously\nLoop: Agents run until condition met",
+            index=0
         )
-        agent_system["evaluator"].evaluate_performance(
-            agent_id="orchestrator",
-            response_time_ms=response_time,
-            success=False,
-            error_count=1
-        )
-        return f"I encountered an error: {str(e)}"
-
-
-def display_agent_status(agent_system: dict):
-    """Display agent system status in sidebar"""
-    with st.sidebar.expander("🤖 Agent System Status"):
-        # Agent status
-        agent_status = agent_system["orchestrator"].get_agent_status()
-        st.write("**Registered Agents:**")
-        for agent_id, status in agent_status.items():
-            st.write(f"- {agent_id}: {status['state']}")
         
-        # Session stats
-        session_stats = agent_system["session_service"].get_session_stats()
-        st.write(f"\n**Sessions:** {session_stats['total_sessions']} total, {session_stats['active_sessions']} active")
+        from agents import AgentPattern
+        pattern_map = {
+            "Sequential": AgentPattern.SEQUENTIAL,
+            "Parallel": AgentPattern.PARALLEL,
+            "Loop": AgentPattern.LOOP
+        }
+        selected_pattern = pattern_map[pattern_option]
         
-        # Memory stats
-        memory_stats = agent_system["memory_bank"].get_stats()
-        st.write(f"**Memory:** {memory_stats['total_entries']} entries across {memory_stats['total_sessions']} sessions")
+        # Display available tools
+        st.sidebar.markdown("### 🔧 **Available Tools**")
         
-        # Observability summary
-        dashboard = agent_system["observability"].get_dashboard_data()
-        st.write(f"**Observability:** {dashboard['traces_count']} traces, {dashboard['metrics_count']} metrics")
+        # MCP Tools
+        st.sidebar.markdown("""
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 0.8rem; border-radius: 8px; margin: 0.5rem 0;'>
+            <strong style='color: white;'>🔌 MCP Tools</strong>
+            <ul style='color: white; margin: 0.5rem 0; padding-left: 1.2rem; font-size: 0.9rem;'>
+                <li>Weather Data Tool</li>
+                <li>Crop Recommendation Tool</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # OpenAPI Tools
+        st.sidebar.markdown("""
+        <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                    padding: 0.8rem; border-radius: 8px; margin: 0.5rem 0;'>
+            <strong style='color: white;'>🌐 OpenAPI Tools</strong>
+            <ul style='color: white; margin: 0.5rem 0; padding-left: 1.2rem; font-size: 0.9rem;'>
+                <li>Weather API</li>
+                <li>Crop Data API</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Built-in Tools
+        st.sidebar.markdown("""
+        <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+                    padding: 0.8rem; border-radius: 8px; margin: 0.5rem 0;'>
+            <strong style='color: white;'>⚙️ Built-in Tools</strong>
+            <ul style='color: white; margin: 0.5rem 0; padding-left: 1.2rem; font-size: 0.9rem;'>
+                <li>Google Search</li>
+                <li>Calculator</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display agent status
+        agent_integration.display_agent_status(agent_system)
+        
+        # Main chat interface
+        st.markdown("### 💬 Chat with Multi-Agent System")
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%);
+                    padding: 1.5rem; border-radius: 15px; border: 2px solid var(--earth-green);
+                    margin: 1rem 0; box-shadow: 0 4px 15px rgba(122, 132, 113, 0.15);'>
+            <p style='margin: 0; color: var(--text-primary); font-size: 0.95rem;'>
+                <strong>💡 How it works:</strong> Your query is processed by specialized agents using 
+                <strong style='color: #667eea;'>MCP tools</strong>, 
+                <strong style='color: #f5576c;'>OpenAPI tools</strong>, and 
+                <strong style='color: #4facfe;'>built-in tools</strong> to provide comprehensive agricultural assistance.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Chat interface
+        if "agent_messages" not in st.session_state:
+            st.session_state.agent_messages = []
+        
+        # Display chat history with enhanced styling
+        chat_container = st.container()
+        with chat_container:
+            for msg in st.session_state.agent_messages:
+                with st.chat_message(msg["role"]):
+                    if msg["role"] == "assistant":
+                        content = msg["content"]
+                        # Format based on content type
+                        if "🔍 Search Results" in content or "Search Results" in content:
+                            # Format search results
+                            st.markdown("### 🔍 Search Results")
+                            # Extract and display search results nicely
+                            st.markdown(content, unsafe_allow_html=True)
+                        elif "🌾" in content or "Crop Recommendation" in content:
+                            # Format crop recommendations
+                            st.markdown(f"""
+                            <div style='background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+                                        padding: 1.5rem; border-radius: 15px; border-left: 5px solid #4caf50;
+                                        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);'>
+                                {content}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        elif "tool" in content.lower() or "mcp" in content.lower():
+                            st.markdown(f"""
+                            <div style='background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+                                        padding: 1rem; border-radius: 10px; border-left: 4px solid #2196f3;
+                                        margin: 0.5rem 0;'>
+                                {content}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            # Regular response
+                            st.markdown(f"""
+                            <div style='background: linear-gradient(135deg, var(--cream-light) 0%, var(--cream-medium) 100%);
+                                        padding: 1rem; border-radius: 10px; border: 1px solid var(--earth-green);
+                                        margin: 0.5rem 0;'>
+                                {content}
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.write(msg["content"])
+        
+        # User input
+        user_input = st.chat_input("Ask about crops, diseases, weather, or agricultural advice...")
+        
+        if user_input:
+            # Add user message
+            st.session_state.agent_messages.append({"role": "user", "content": user_input})
+            with st.chat_message("user"):
+                st.write(user_input)
+            
+            # Process with agents
+            with st.chat_message("assistant"):
+                with st.spinner("🤖 Processing with multi-agent system using MCP tools..."):
+                    response = agent_integration.process_with_agents(
+                        user_input,
+                        agent_system,
+                        pattern=selected_pattern
+                    )
+                    
+                    # Enhanced response display with NILAM CHAT-style formatting
+                    # Check if response contains HTML (from markdown conversion)
+                    is_html = response.strip().startswith('<') or '<div' in response or '<p>' in response or '<pre>' in response or '<code>' in response
+                    
+                    if is_html:
+                        # Response is already formatted HTML (from _format_agent_response)
+                        # Use NILAM CHAT-style container
+                        st.markdown(f"""
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🧠 Agricultural Expert Response
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif "Search Results" in response or "🔍" in response:
+                        # Format search results
+                        st.markdown(f"""
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🔍 Search Results
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif "🌾" in response or "Crop Recommendation" in response:
+                        # Format crop recommendations
+                        st.markdown(f"""
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🌾 Crop Recommendation
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        # Regular response - format as HTML if needed
+                        st.markdown(f"""
+                        <div class='expert-response-container'>
+                            <div class='response-header'>
+                                🧠 Agricultural Expert Response
+                            </div>
+                            <div class='response-content'>
+                                {response}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # Show tool usage indicator
+                    tool_used = False
+                    if any(keyword in user_input.lower() for keyword in ['weather', 'temperature', 'rain', 'climate']):
+                        tool_used = True
+                        st.info("🔌 **MCP Weather Tool** was used to fetch real-time weather data")
+                    if any(keyword in user_input.lower() for keyword in ['crop', 'recommend', 'plant', 'grow']):
+                        tool_used = True
+                        st.info("🔌 **MCP Crop Recommendation Tool** was used for crop analysis")
+                    if any(keyword in user_input.lower() for keyword in ['search', 'find', 'lookup']):
+                        tool_used = True
+                        st.info("⚙️ **Google Search Tool** was used to find information")
+                    
+                    st.session_state.agent_messages.append({"role": "assistant", "content": response})
+        
+        # Additional tabs
+        tab1, tab2, tab3 = st.tabs(["📊 Observability", "🌐 A2A Network", "📖 Documentation"])
+        
+        with tab1:
+            agent_integration.display_observability_dashboard(agent_system)
+        
+        with tab2:
+            agent_integration.display_a2a_network(agent_system)
+        
+        with tab3:
+            st.header("📖 Agent System Documentation")
+            
+            # MCP Tools Section
+            st.markdown("""
+            <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        padding: 2rem; border-radius: 15px; margin: 1rem 0;
+                        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);'>
+                <h2 style='color: white; margin-top: 0;'>🔌 MCP (Model Context Protocol) Tools</h2>
+                <p style='color: white; font-size: 1.1rem;'>
+                    MCP tools enable standardized communication between agents and external services.
+                    Our system implements MCP-compatible tools for seamless integration.
+                </p>
+                <div style='background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 10px; margin-top: 1rem;'>
+                    <h3 style='color: white;'>Available MCP Tools:</h3>
+                    <ul style='color: white; font-size: 1rem;'>
+                        <li><strong>MCP Weather Tool:</strong> Fetches real-time weather data for agricultural planning</li>
+                        <li><strong>MCP Crop Recommendation Tool:</strong> Provides intelligent crop recommendations based on multiple factors</li>
+                    </ul>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # OpenAPI Tools Section
+            st.markdown("""
+            <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                        padding: 2rem; border-radius: 15px; margin: 1rem 0;
+                        box-shadow: 0 8px 25px rgba(245, 87, 108, 0.3);'>
+                <h2 style='color: white; margin-top: 0;'>🌐 OpenAPI Tools</h2>
+                <p style='color: white; font-size: 1.1rem;'>
+                    OpenAPI-compatible tools for accessing external REST APIs and services.
+                </p>
+                <div style='background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 10px; margin-top: 1rem;'>
+                    <h3 style='color: white;'>Available OpenAPI Tools:</h3>
+                    <ul style='color: white; font-size: 1rem;'>
+                        <li><strong>OpenAPI Weather Tool:</strong> Weather data via REST API</li>
+                        <li><strong>OpenAPI Crop Tool:</strong> Crop data and recommendations via API</li>
+                    </ul>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Built-in Tools Section
+            st.markdown("""
+            <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                        padding: 2rem; border-radius: 15px; margin: 1rem 0;
+                        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);'>
+                <h2 style='color: white; margin-top: 0;'>⚙️ Built-in Tools</h2>
+                <p style='color: white; font-size: 1.1rem;'>
+                    Core tools integrated directly into the agent system.
+                </p>
+                <div style='background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 10px; margin-top: 1rem;'>
+                    <h3 style='color: white;'>Available Built-in Tools:</h3>
+                    <ul style='color: white; font-size: 1rem;'>
+                        <li><strong>Google Search Tool:</strong> Real-time web search capabilities</li>
+                        <li><strong>Calculator Tool:</strong> Mathematical computations and calculations</li>
+                    </ul>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Other Features
+            st.markdown("""
+            ### ✅ Additional Features
+            
+            **Multi-Agent System**
+            - LLM-powered agents (Gemini 2.5 Flash)
+            - Sequential, Parallel, and Loop execution patterns
+            - Agent orchestration and coordination
+            
+            **Sessions & Memory**
+            - InMemorySessionService for session management
+            - Memory Bank for long-term memory storage
+            - Context compaction and optimization
+            
+            **Observability**
+            - Comprehensive logging and tracing
+            - Real-time metrics and performance monitoring
+            - Agent evaluation and quality assessment
+            
+            **A2A Protocol**
+            - Agent-to-agent communication
+            - Agent discovery and routing
+            - Message passing and coordination
+            
+            **Deployment**
+            - Docker containerization
+            - Docker Compose for orchestration
+            - Health checks and monitoring
+            """)
+            
+    except Exception as e:
+        st.error(f"Error loading Agent System: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
 
+def main():
+    # Sidebar navigation
+    st.sidebar.title("🌱 Nilam Navigation")
+    st.sidebar.markdown("---")
+    
+    # Navigation options
+    page = st.sidebar.selectbox(
+        "Choose a section:",
+        ["Nilam Chat", "Leafine", "🤖 Agent System"],
+        index=0  # Default to Nilam Chat
+    )
+    
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### About")
+    st.sidebar.markdown("""
+    **Nilam** - Your Agricultural Assistant
+    
+    Navigate between different sections:
+    - **Nilam Chat**: AI-powered agricultural assistance
+    - **Leafine**: Leaf disease detection
+    - **Agent System**: Multi-agent system with MCP tools & advanced features
+    """)
+    
+    # Main content area
+    if page == "Nilam Chat": 
+        run_nilamchat()
+    
+    elif page == "Leafine":
+        st.markdown("""
+            <div class='main-header'>
+                    <div style='font-size: 1.8rem; opacity: 0.9;'>
+                        🍃 Leafine
+                    </div>
+            </div>
+        """, unsafe_allow_html=True)
+        run_leafine()
+    
+    elif page == "🤖 Agent System":
+        run_agent_system()
 
-def display_observability_dashboard(agent_system: dict):
-    """Display observability dashboard"""
-    st.header("📊 Observability Dashboard")
-    
-    dashboard = agent_system["observability"].get_dashboard_data()
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Traces", dashboard["traces_count"])
-    with col2:
-        st.metric("Metrics", dashboard["metrics_count"])
-    with col3:
-        st.metric("Logs", dashboard["logs_count"])
-    
-    # Aggregated metrics
-    st.subheader("Aggregated Metrics")
-    aggregated = dashboard["aggregated_metrics"]
-    if aggregated:
-        for metric_name, stats in aggregated.items():
-            st.write(f"**{metric_name}**:")
-            st.write(f"- Count: {stats['count']}")
-            st.write(f"- Average: {stats['avg']:.2f}")
-            st.write(f"- Min: {stats['min']:.2f}, Max: {stats['max']:.2f}")
-    
-    # Recent traces
-    st.subheader("Recent Traces")
-    recent_traces = dashboard["recent_traces"]
-    for trace in recent_traces[-10:]:
-        st.write(f"- **{trace['agent_id']}**: {trace['event_type']} ({trace.get('duration_ms', 'N/A')}ms)")
-
-
-def display_a2a_network(agent_system: dict):
-    """Display A2A protocol network topology"""
-    st.header("🌐 A2A Protocol Network")
-    
-    topology = agent_system["a2a_protocol"].get_network_topology()
-    
-    st.write(f"**Total Agents:** {topology['total_agents']}")
-    st.write(f"**Active Agents:** {topology['active_agents']}")
-    st.write(f"**Total Messages:** {topology['total_messages']}")
-    
-    st.subheader("Agent Capabilities")
-    for agent_id, info in topology["agents"].items():
-        st.write(f"**{agent_id}**:")
-        st.write(f"- Status: {info['status']}")
-        st.write(f"- Capabilities: {', '.join(info['capabilities'])}")
-
-
+if __name__ == "__main__":
+    main()
