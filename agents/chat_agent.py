@@ -2,6 +2,8 @@
 Chat Agent - LLM-powered conversational agent for agricultural queries
 """
 import uuid
+
+# ADK imports - wrapped in try/except for optional installation
 try:
     from google.adk.agents import LlmAgent
     from google.adk.models.google_llm import Gemini
@@ -207,18 +209,19 @@ class ChatAgent(BaseAgent):
             "- Provide forward-thinking advice considering climate change and market dynamics\n"
             "- Keep the response concise yet comprehensive\n"
             "- Focus on actionable insights that can increase productivity and profitability\n"
-            "- If the user asks for code snippets, ALWAYS format every code output inside proper markdown code blocks using triple backticks and the correct language identifier (e.g. python, cpp, etc). For example:\n"
-            "  ```python\n"
-            "  # your Python code here\n"
-            "  ```\n"
-            "  Or:\n"
-            "  ```cpp\n"
-            "  // your C++ code here\n"
-            "  ```\n"
-            "- Never output raw code outside code blocks. All code must be inside triple backticks with language identifier.\n"
-            "- Add brief, relevant comments inside the code where helpful.\n"
-            "- Always provide a short explanation after the code on what it does and how to use it.\n"
-            "- Code blocks will be displayed in white monospace text (as per Markdown standard), so do NOT worry about font color.\n"
+            "- **When the user asks for code:**\n"
+            "    - Output ALL explanatory notes, bullet points, and headers OUTSIDE the code block, using markdown text, bullet points, and headings.\n"
+            "    - Use markdown code blocks (triple backticks) with the correct language identifier for ALL code.\n"
+            "    - Place ONLY code INSIDE the code block. You may include inline comments in the code for clarity, but reserve high-level descriptions for the markdown outside the code block.\n"
+            "    - Example format:\n"
+            "        ## [Title of Code Block]\n"
+            "        Description or important notes in markdown.\n"
+            "        ```python\n"
+            "        # Actual code here, with explanatory inline comments if needed\n"
+            "        ...\n"
+            "        ```\n"
+            "    - After the code block, provide a brief explanation in markdown of what the code does and how the user can use it in their agricultural context.\n"
+            "- Code blocks will display in white monospace text as per Markdown standard.\n"
             "Provide a helpful, accurate response:"
         )
         return prompt
