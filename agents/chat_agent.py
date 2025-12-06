@@ -4,7 +4,6 @@ Chat Agent - LLM-powered conversational agent for agricultural queries
 import uuid
 from google.genai import types
 from google.adk.agents import LlmAgent
-from google.adk.models.google_llm import Gemini
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
@@ -14,6 +13,7 @@ from mcp import StdioServerParameters
 from google.adk.apps.app import App, ResumabilityConfig
 from google.adk.tools.function_tool import FunctionTool
 from typing import Dict, Any
+import google.generativeai as genai
 from agents.base_agent import BaseAgent, AgentMessage, AgentContext, AgentState
 from agents.tools.builtin_tools import GoogleSearchTool, CalculatorTool
 
@@ -33,11 +33,12 @@ class ChatAgent(BaseAgent):
         api_key: str = None,
         tools: list = None
     ):
-        # Initialize LLM using ADK
+        # Initialize LLM using google-generativeai
         if api_key and not llm_model:
             try:
-                # Using ADK's Gemini model
-                llm_model = Gemini(api_key=api_key, model_name="gemini-2.5-flash")
+                # Using standard google-generativeai library
+                genai.configure(api_key=api_key)
+                llm_model = genai.GenerativeModel("gemini-2.5-flash")
             except Exception as e:
                 print(f"Error initializing Gemini: {e}")
         
@@ -73,7 +74,7 @@ class ChatAgent(BaseAgent):
             
             # Generate response using LLM
             if self.llm_model:
-                response = self.llm_model.generate(prompt)
+                response = self.llm_model.generate_content(prompt)
                 response_text = response.text
             else:
                 response_text = "I'm a chat agent. Please configure the LLM model to get responses."
