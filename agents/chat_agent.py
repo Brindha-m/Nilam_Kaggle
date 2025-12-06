@@ -73,7 +73,7 @@ class ChatAgent(BaseAgent):
             
             # Generate response using LLM
             if self.llm_model:
-                response = self.llm_model.generate_content(prompt)
+                response = self.llm_model.generate(prompt)
                 response_text = response.text
             else:
                 response_text = "I'm a chat agent. Please configure the LLM model to get responses."
