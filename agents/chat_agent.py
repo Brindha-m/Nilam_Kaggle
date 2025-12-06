@@ -94,16 +94,24 @@ class ChatAgent(BaseAgent):
             else:
                 response_text = "I'm a chat agent. Please configure the LLM model to get responses."
             
-            # Check if tools need to be used
-            if any(keyword in response_text.lower() for keyword in ['search', 'calculate', 'compute']):
-                # Try to use tools if needed
-                if 'search' in response_text.lower():
-                    try:
-                        search_result = self.execute_tool("google_search", {"query": message.content})
-                        formatted_search = self._format_search_results(search_result)
-                        response_text += formatted_search
-                    except:
-                        pass
+            # Enhanced tool integration - only use real tools, filter out demo content
+            # Use tools for calculations and real-time data, but skip demo search results
+            if any(keyword in message.content.lower() for keyword in ['calculate', 'compute', 'roi', 'profit', 'cost']):
+                try:
+                    # Use calculator for financial analysis
+                    if 'calculate' in message.content.lower() or 'compute' in message.content.lower():
+                        # Extract calculation expressions if present
+                        import re
+                        calc_expressions = re.findall(r'[\d+\-*/().\s]+', message.content)
+                        if calc_expressions:
+                            calc_result = self.execute_tool("calculator", {"expression": calc_expressions[0]})
+                            if calc_result.get("success"):
+                                response_text += f"\n\n**Quick Calculation**: {calc_result.get('result')}\n"
+                except:
+                    pass
+            
+            # Remove any demo/placeholder content that might have been generated
+            response_text = self._clean_demo_content(response_text)
             
             response_time = __import__('time').time() - start_time
             self.update_metrics("average_response_time", response_time)
@@ -136,60 +144,173 @@ class ChatAgent(BaseAgent):
             )
     
     def _format_search_results(self, search_result: Dict[str, Any]) -> str:
-        """Format search results in a readable way"""
+        """Format search results in a readable way - filters out demo/placeholder content"""
         if isinstance(search_result, dict) and "results" in search_result:
-            formatted = "\n\n### 🔍 Search Results\n\n"
+            formatted = "\n\n### 🔍 Real-Time Market Intelligence\n\n"
             results = search_result.get("results", [])
-            for i, result in enumerate(results[:3], 1):  # Show top 3 results
-                title = result.get("title", "Result")
-                snippet = result.get("snippet", "")
+            valid_results = []
+            
+            for result in results:
                 url = result.get("url", "")
+                title = result.get("title", "")
+                snippet = result.get("snippet", "")
                 
-                # Clean up title (remove query prefix if present)
-                if "Result" in title and "for:" in title:
-                    title = title.split("for:")[-1].strip()
+                # Filter out all demo/placeholder/test URLs and content
+                if any(demo_term in url.lower() for demo_term in ['example.com', 'demo', 'test', 'placeholder', 'mock']):
+                    continue
+                if any(demo_term in title.lower() for demo_term in ['result for:', 'demo', 'test', 'placeholder']):
+                    continue
+                if any(demo_term in snippet.lower() for demo_term in ['relevant content here', 'demo', 'test', 'placeholder']):
+                    continue
                 
-                formatted += f"**{i}. {title}**\n"
-                if snippet:
-                    # Clean snippet
-                    snippet = snippet.replace("Information about", "").strip()
-                    if snippet.endswith(" - relevant content here"):
-                        snippet = snippet.replace(" - relevant content here", "").strip()
+                valid_results.append(result)
+            
+            # Only show real, valid results (no demo links)
+            for i, result in enumerate(valid_results[:3], 1):
+                title = result.get("title", "").strip()
+                snippet = result.get("snippet", "").strip()
+                url = result.get("url", "").strip()
+                
+                if title and snippet:
+                    formatted += f"**{i}. {title}**\n"
                     formatted += f"{snippet}\n"
-                if url and url != "https://example.com/result":
-                    formatted += f"🔗 {url}\n"
-                formatted += "\n"
-            return formatted
+                    if url and not any(demo_term in url.lower() for demo_term in ['example.com', 'demo', 'test']):
+                        formatted += f"🔗 {url}\n"
+                    formatted += "\n"
+            
+            return formatted if valid_results else ""
         elif isinstance(search_result, str):
-            # If it's already a string, try to parse it
-            if "Search Results:" in search_result:
-                return f"\n\n### 🔍 Additional Information\n\n{search_result.replace('[Search Results:', '').replace(']', '')}\n"
+            # Clean any demo references from string results
+            cleaned = search_result.replace('[Search Results:', '').replace(']', '')
+            if not any(demo_term in cleaned.lower() for demo_term in ['example.com', 'demo', 'test', 'placeholder']):
+                return f"\n\n### 🔍 Additional Intelligence\n\n{cleaned}\n"
         return ""
     
     def _build_prompt(self, user_message: str, history: list, context: AgentContext) -> str:
-        """Build prompt with context and history"""
-        prompt = """You are Dr. Agricultural Expert, India's leading farming consultant with 25+ years experience.
-Provide concise, actionable responses with deep insights and data-driven analysis.
+        """Build advanced analytical prompt with real-time insights and future planning"""
+        from datetime import datetime
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        current_season = self._get_current_season()
+        
+        prompt = f"""You are Dr. Agricultural Intelligence, India's premier agricultural strategist and futurist with 30+ years of cutting-edge research and field experience. You combine deep domain expertise with real-time market intelligence, climate science, and innovative farming technologies.
+
+CORE CAPABILITIES:
+- Real-time market analysis and price forecasting
+- Climate-resilient farming strategies
+- Precision agriculture and IoT integration
+- Sustainable intensification techniques
+- Future-proof farming roadmaps
+- Risk mitigation and contingency planning
+- Government scheme optimization
+- Supply chain and market linkage strategies
+
+CURRENT CONTEXT (Real-Time):
+- Date: {current_date}
+- Season: {current_season}
+- Market Phase: {self._get_market_phase()}
+
+RESPONSE REQUIREMENTS:
+1. **IMMEDIATE ANALYSIS**: Start with current market conditions, real-time prices, and immediate actionable steps
+2. **CORE INSIGHTS**: Provide deep analytical insights with specific data points, percentages, costs, yields, and ROI calculations
+3. **OUT-OF-THE-BOX THINKING**: Suggest innovative approaches, unconventional strategies, and emerging technologies
+4. **FUTURE PLANNING**: Include 6-month, 1-year, and 3-year strategic roadmaps with milestones
+5. **RISK ANALYSIS**: Identify potential challenges and provide mitigation strategies
+6. **COMPETITIVE ADVANTAGE**: Highlight opportunities for differentiation and premium pricing
+7. **DATA-DRIVEN**: Use specific numbers, statistics, and evidence-based recommendations
+8. **NO DEMO CONTENT**: Never include placeholder links, demo URLs, or example.com references - only real, actionable information
+
+RESPONSE STRUCTURE:
+- **Executive Summary**: Key insights in 2-3 sentences
+- **Current Market Intelligence**: Real-time analysis
+- **Strategic Recommendations**: Core actionable steps
+- **Innovation Opportunities**: Out-of-the-box solutions
+- **Future Roadmap**: Short, medium, and long-term plans
+- **Risk & Mitigation**: Potential challenges and solutions
+- **Financial Projections**: ROI, costs, revenue forecasts
+- **Next Steps**: Immediate actions with timelines
 
 """
         
         # Add memory context if available
         if context.memory:
-            prompt += "Context from previous conversations:\n"
-            for key, value in list(context.memory.items())[:5]:  # Last 5 memory items
+            prompt += "**LEARNED CONTEXT FROM PREVIOUS INTERACTIONS:**\n"
+            for key, value in list(context.memory.items())[:5]:
                 prompt += f"- {key}: {value}\n"
             prompt += "\n"
         
-        # Add conversation history
+        # Add conversation history for continuity
         if history:
-            prompt += "Recent conversation:\n"
-            for msg in history[-5:]:  # Last 5 messages
+            prompt += "**CONVERSATION HISTORY:**\n"
+            for msg in history[-5:]:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
-                prompt += f"{role}: {content}\n"
+                prompt += f"{role.upper()}: {content}\n"
             prompt += "\n"
         
-        prompt += f"User question: {user_message}\n\n"
-        prompt += "Provide a helpful, accurate response:"
+        prompt += f"""**USER QUERY:** {user_message}
+
+**YOUR TASK**: Provide a comprehensive, advanced analysis that combines:
+- Real-time market intelligence
+- Deep analytical insights
+- Innovative, out-of-the-box solutions
+- Strategic future planning
+- Actionable recommendations with specific data
+
+Remember: NO demo links, NO placeholder content, NO example URLs. Only real, actionable, data-driven insights.
+
+Begin your response:"""
         
         return prompt
+    
+    def _clean_demo_content(self, text: str) -> str:
+        """Remove all demo, placeholder, and example content from response"""
+        import re
+        
+        # Remove demo URLs
+        text = re.sub(r'https?://(?:www\.)?(?:example\.com|demo|test|placeholder)[^\s]*', '', text, flags=re.IGNORECASE)
+        
+        # Remove placeholder text patterns
+        placeholder_patterns = [
+            r'\[.*?placeholder.*?\]',
+            r'\[.*?demo.*?\]',
+            r'\[.*?example.*?\]',
+            r'Result \d+ for:',
+            r'relevant content here',
+            r'Information about.*?- relevant content',
+        ]
+        
+        for pattern in placeholder_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        
+        # Clean up multiple spaces and newlines
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        text = re.sub(r' {2,}', ' ', text)
+        
+        return text.strip()
+    
+    def _get_current_season(self) -> str:
+        """Determine current agricultural season"""
+        from datetime import datetime
+        month = datetime.now().month
+        if month in [6, 7, 8, 9]:
+            return "Kharif (Monsoon Season)"
+        elif month in [10, 11, 12, 1]:
+            return "Rabi (Winter Season)"
+        elif month in [2, 3, 4, 5]:
+            return "Zaid (Summer Season)"
+        return "Transition Period"
+    
+    def _get_market_phase(self) -> str:
+        """Determine current market phase"""
+        from datetime import datetime
+        month = datetime.now().month
+        if month in [9, 10, 11]:
+            return "Harvest & Peak Selling Season"
+        elif month in [12, 1, 2]:
+            return "Post-Harvest & Storage Planning"
+        elif month in [3, 4, 5]:
+            return "Pre-Monsoon Preparation & Input Procurement"
+        elif month in [6, 7, 8]:
+            return "Active Growing Season & Market Monitoring"
+        return "Market Analysis Phase"
