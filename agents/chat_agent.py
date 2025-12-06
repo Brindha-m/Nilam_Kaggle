@@ -2,8 +2,6 @@
 Chat Agent - LLM-powered conversational agent for agricultural queries
 """
 import uuid
-
-# ADK imports - wrapped in try/except for optional installation
 try:
     from google.adk.agents import LlmAgent
     from google.adk.models.google_llm import Gemini
@@ -111,7 +109,7 @@ class ChatAgent(BaseAgent):
                         search_result = self.execute_tool("google_search", {"query": message.content})
                         formatted_search = self._format_search_results(search_result)
                         response_text += formatted_search
-                    except:
+                    except Exception:
                         pass
 
             response_time = __import__('time').time() - start_time
@@ -154,7 +152,6 @@ class ChatAgent(BaseAgent):
                 snippet = result.get("snippet", "")
                 url = result.get("url", "")
 
-                # Clean up title (remove query prefix if present)
                 if "Result" in title and "for:" in title:
                     title = title.split("for:")[-1].strip()
 
@@ -175,41 +172,53 @@ class ChatAgent(BaseAgent):
 
     def _build_prompt(self, user_message: str, history: list, context: AgentContext) -> str:
         """Build prompt with context and history - improved for code requests"""
-
-        prompt = """You are Dr. Agricultural Expert, India's leading farming consultant with 25+ years experience.
-Provide concise, actionable responses with deep insights and data-driven analysis.
-
-"""
+        prompt = (
+            "You are Dr. Agricultural Expert, India's leading farming consultant with 25+ years experience.\n"
+            "Provide concise, actionable responses with deep insights and data-driven analysis.\n\n"
+        )
 
         # Add memory context if available
         if context.memory:
             prompt += "Context from previous conversations:\n"
-            for key, value in list(context.memory.items())[:5]:  # Last 5 memory items
+            for key, value in list(context.memory.items())[:5]:
                 prompt += f"- {key}: {value}\n"
             prompt += "\n"
 
         # Add conversation history
         if history:
             prompt += "Recent conversation:\n"
-            for msg in history[-5:]:  # Last 5 messages
+            for msg in history[-5:]:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
                 prompt += f"{role}: {content}\n"
             prompt += "\n"
 
         prompt += f"QUERY: {user_message}\n\n"
-        prompt += """RESPONSE GUIDELINES:
-- Answer the specific query with innovative, practical solutions
-- Include cutting-edge farming techniques and technologies where relevant
-- Provide data-driven insights with specific numbers, costs, and yields
-- Use markdown tables for structured data (e.g., | Item | Quantity | Rate (₹) | Total Cost (₹) | Notes |)
-- Use bullet points (•) for actionable recommendations
-- Include market trends, government schemes, and risk mitigation strategies
-- Use clear section headers with ## for different aspects
-- Emphasize sustainable and profitable farming practices
-- Provide forward-thinking advice considering climate change and market dynamics
-- Keep the response concise yet comprehensive
-- Focus on actionable insights that can increase productivity and profitability
-- If the user asks for code snippets, ALWAYS format the code inside markdown code blocks using triple backticks and the correct language identifier. For example:
-  ```python
-  # your Python code here
+        prompt += (
+            "RESPONSE GUIDELINES:\n"
+            "- Answer the specific query with innovative, practical solutions\n"
+            "- Include cutting-edge farming techniques and technologies where relevant\n"
+            "- Provide data-driven insights with specific numbers, costs, and yields\n"
+            "- Use markdown tables for structured data (e.g., | Item | Quantity | Rate (₹) | Total Cost (₹) | Notes |)\n"
+            "- Use bullet points (•) for actionable recommendations\n"
+            "- Include market trends, government schemes, and risk mitigation strategies\n"
+            "- Use clear section headers with ## for different aspects\n"
+            "- Emphasize sustainable and profitable farming practices\n"
+            "- Provide forward-thinking advice considering climate change and market dynamics\n"
+            "- Keep the response concise yet comprehensive\n"
+            "- Focus on actionable insights that can increase productivity and profitability\n"
+            "- If the user asks for code snippets, ALWAYS format every code output inside proper markdown code blocks using triple backticks and the correct language identifier (e.g. python, cpp, etc). For example:\n"
+            "  ```python\n"
+            "  # your Python code here\n"
+            "  ```\n"
+            "  Or:\n"
+            "  ```cpp\n"
+            "  // your C++ code here\n"
+            "  ```\n"
+            "- Never output raw code outside code blocks. All code must be inside triple backticks with language identifier.\n"
+            "- Add brief, relevant comments inside the code where helpful.\n"
+            "- Always provide a short explanation after the code on what it does and how to use it.\n"
+            "- Code blocks will be displayed in white monospace text (as per Markdown standard), so do NOT worry about font color.\n"
+            "Provide a helpful, accurate response:"
+        )
+        return prompt
